@@ -1,0 +1,1285 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Last Circuit</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #58d68d;
+            --tile-stable: #1f2937;
+            --tile-hover: #374151;
+            --tile-cracked: #783e19;
+            --tile-heavy: #4a1c1c;
+            --tile-power: #10b981;
+            --tile-exit: #3b82f6;
+            --player-color: #ffffff;
+            --broken-color: #000000;
+            --danger-color: #ef4444;
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+
+        #game-container {
+            border: 2px solid var(--text-color);
+            border-radius: 8px;
+            padding: 24px;
+            background-color: #161b22;
+            box-shadow: 0 0 20px rgba(88, 214, 141, 0.15);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--text-color);
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        #grid-container {
+            display: inline-grid;
+            gap: 4px;
+            background: #000;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .tile {
+            width: 45px;
+            height: 45px;
+            background-color: var(--tile-stable);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tile.unreachable {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .tile:not(.unreachable):hover {
+            background-color: var(--tile-hover) !important;
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Tile Styles */
+        .tile[data-type="start"] { background-color: var(--tile-stable); }
+        .tile[data-type="exit"] { 
+            background-color: rgba(59, 130, 246, 0.2); 
+            border: 2px solid var(--tile-exit); 
+            box-shadow: inset 0 0 10px var(--tile-exit); 
+        }
+        .tile[data-type="cracked"] { background-color: var(--tile-cracked); }
+        .tile[data-type="heavy"] { background-color: var(--tile-heavy); }
+        .tile[data-type="power"] { 
+            background-color: rgba(16, 185, 129, 0.1); 
+            border: 1px solid var(--tile-power); 
+            color: var(--tile-power); 
+        }
+        .tile[data-type="broken"] { background-color: var(--broken-color); cursor: not-allowed; opacity: 0.2; }
+        .tile[data-type="relic"] {
+            background-color: rgba(168, 85, 247, 0.15);
+            border: 1px solid #a855f7;
+            box-shadow: inset 0 0 8px #a855f7;
+            color: #a855f7;
+        }
+
+        .tile-icon {
+            font-size: 1.4rem;
+            pointer-events: none;
+        }
+
+        .player {
+            width: 22px;
+            height: 22px;
+            background-color: var(--player-color);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 15px #fff, 0 0 5px #fff inset;
+            transition: all 0.2s ease-out;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #energy-display {
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        
+        #energy-display.critical {
+            color: var(--danger-color);
+            animation: flicker 0.6s infinite;
+        }
+
+        #log-container {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            background: #000;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        #log {
+            color: #8b949e;
+            font-size: 0.9rem;
+            min-height: 1.2rem;
+            text-align: center;
+        }
+
+        #active-rewards {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .reward-icon-container {
+            position: relative;
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 1.5rem;
+            cursor: help;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .reward-icon-container.boon { border-color: var(--text-color); box-shadow: 0 0 5px rgba(88, 214, 141, 0.2); }
+        .reward-icon-container.bane { border-color: var(--danger-color); box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
+
+        .stack-count {
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            background: var(--bg-color);
+            color: #fff;
+            border: 1px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 5;
+        }
+
+        .step-count {
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 4px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 5;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: fixed;
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid var(--text-color);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            font-size: 0.9rem;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        /* Overlays for UI */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .modal-box {
+            background: #161b22;
+            border: 1px solid var(--text-color);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #overlay-title {
+            margin-top: 0;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #overlay-desc {
+            color: #8b949e;
+            margin-bottom: 24px;
+        }
+
+        .reward-button {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 12px 0;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .reward-button:hover {
+            background: #1f2937;
+            border-color: var(--text-color);
+            transform: translateY(-2px);
+        }
+
+        .reward-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+            font-family: var(--font-main);
+        }
+
+        .boon-text { color: var(--text-color); font-size: 0.95rem; font-family: var(--font-main); }
+        .bane-text { color: var(--danger-color); font-size: 0.95rem; font-family: var(--font-main); }
+
+        .action-button {
+            background: transparent;
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-family: var(--font-main);
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .action-button:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        #seed-bar {
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 12px;
+            padding: 4px 8px;
+            cursor: pointer;
+            user-select: text;
+            letter-spacing: 1px;
+            transition: color 0.2s;
+            border-top: 1px dashed #30363d;
+            padding-top: 10px;
+        }
+
+        #seed-bar:hover { color: var(--text-color); }
+
+        @keyframes flicker {
+            0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; }
+        }
+
+        @keyframes energy-flash-gain {
+            0%   { transform: scale(1); text-shadow: none; }
+            30%  { transform: scale(1.45); color: var(--text-color); text-shadow: 0 0 16px var(--text-color); }
+            100% { transform: scale(1); text-shadow: none; }
+        }
+
+        @keyframes energy-flash-loss {
+            0%   { transform: scale(1); text-shadow: none; }
+            30%  { transform: scale(1.45); color: var(--danger-color); text-shadow: 0 0 16px var(--danger-color); }
+            100% { transform: scale(1); text-shadow: none; }
+        }
+
+        #energy-display.flash-gain { display: inline-block; animation: energy-flash-gain 0.6s ease; }
+        #energy-display.flash-loss { display: inline-block; animation: energy-flash-loss 0.6s ease; }
+
+        @media (max-width: 600px) {
+            .tile { width: 35px; height: 35px; }
+            .tile-icon { font-size: 1.1rem; }
+            #game-container { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <div id="game-container">
+            <div id="header">
+                <div>FLOOR <span id="level-display">1</span>/40</div>
+                <div>ENERGY: <span id="energy-display">15</span>/<span id="max-energy-display">15</span></div>
+            </div>
+
+            <div id="grid-container"></div>
+
+            <div id="log-container">
+                <div id="log">SYSTEM ONLINE. Find EXIT.</div>
+            </div>
+
+            <div id="active-rewards"></div>
+
+            <div id="seed-bar" title="Click to copy seed">SEED: <span id="seed-display"></span></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="overlay">
+        <div class="modal-box">
+            <h2 id="overlay-title">SYSTEM REFRESH</h2>
+            <p id="overlay-desc">Select a subroutine package to install:</p>
+            <div id="reward-choices"></div>
+            <button id="overlay-action-btn" class="action-button" style="display: none;">CONTINUE</button>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const CONFIG = { energy: { start: 15, cracked: 1, stable: 1, heavy: 3, powerGain: 7 } };
+
+            const TILE_TYPES = { STABLE: 0, START: 1, EXIT: 2, POWER: 3, HEAVY: 4, CRACKED: 5, BROKEN: 6, RELIC: 7 };
+            const TILE_MAP = {
+                0: { type: 'stable', icon: '' },
+                1: { type: 'start', icon: '⌂' },
+                2: { type: 'exit', icon: '⧉' },
+                3: { type: 'power', icon: '⚡' },
+                4: { type: 'heavy', icon: '▼' },
+                5: { type: 'cracked', icon: '▨' },
+                6: { type: 'broken', icon: '✕' },
+                7: { type: 'relic', icon: '💎' }
+            };
+
+            // 15 Levels mapping
+            const LEVEL_STRINGS = [
+                // Levels 1-5
+                [ "..E..", ".....", ".P...", ".....", "..S.." ],
+                [ "CCCCE", "C...C", "C.P.C", "C....", "S...." ],
+                [ "..HHHE", "..HP.H", "..H..H", "P.HHHH", "......", "S....." ],
+                [ "EC....", ".C.HH.", ".CPHP.", ".CHH..", "......", ".....S" ],
+                [ "..CCC..", ".HHPHH.", "CH...HC", "SH.P.HE", "CH...HC", ".HHPHH.", "..CCC.." ],
+                // Levels 6-10
+                [ "EHHHHHH", ".X.X.X.", ".......", "X.XPX.X", ".......", ".X.X.X.", "S......" ],
+                [ "SCCCX...", "XXXCXXX.", "...CHH..", "X.XCX.XE", "X.PCH.X.", "XXXCH.X.", "...C....", ".P.C..P." ],
+                [ ".......E", ".HHHHHH.", ".H....H.", ".H.HH.H.", ".H.SP.H.", ".H.HH.H.", ".H....H.", ".HHHHHH." ],
+                [ "S...H...P", "XX.H.H.XX", "..H...H..", "X.H.P.H.X", ".H.....H.", "X.H...H.X", "..H.P.H..", "XX.H.H.XX", "E...H...." ],
+                [ "CCCCCCCCC", "CXXXXXXXC", "CXPPPPPXC", "CXHXXXHXC", "SXHXXXHXE", "CXHXXXHXC", "CXPPPPPXC", "CXXXXXXXC", "CCCCCCCCC" ],
+                // Levels 11-15
+                [ "S.H.H.H.H.", ".H.H.H.H.H", "H.H.P.H.H.", ".H.H.H.H.H", "H.H.H.H.H.", ".H.H.H.H.H", "H.H.H.H.P.", ".H.H.H.H.H", "H.H.H.H.H.", ".E.H.H.H.H" ],
+                [ "SXXXXXXXXE", "C........C", "CXHXXXXHXC", "C.H.P..H.C", "CXHXXXXHXC", "C.H....H.C", "CXHXXXXHXC", "C.H..P.H.C", "C........C", "CCCCCCCCCC" ],
+                [ "S..H..P..H.", "H.HXHXXXHX.", "H.H.H...H..", "H.H.H.H.H.E", "..H...H...H", ".XXXHXXXHXX", "...H...P..H", "H.H.HXXXH.H", "H...H...H.H", "HXXXXXX.X.H", "P.........H" ],
+                [ "PCHHHHHHHCE", "CX.......XC", "H.PCHHHC..H", "H.CX...XC.H", "H.H.PCH.H.H", "H.H.CSH.H.H", "H.H.HCP.H.H", "H.CX...XC.H", "H..CHHHC..H", "CX.......XC", "PCHHHHHHHCP" ],
+                [ "SCCCCCCCCCCC", "CXXXXXXXXXXC", "CXPPHHCHHPXC", "CXPH..CH.PXC", "CXH.XXCXXHXC", "CXH.X.P.XHXC", "CXH.X...XHXC", "CXH.XXCXXHXC", "CXPH..CH.PXC", "CXPPHHCHHPXC", "CXXXXXXXXXXC", "CCCCCCCCCCCE" ]
+            ];
+
+            function parseGridData(strArray) {
+                const map = {'.': 0, 'S': 1, 'E': 2, 'P': 3, 'H': 4, 'C': 5, 'X': 6};
+                let start = [0,0], exit = [0,0];
+                const grid = strArray.map((row, r) => [...row].map((char, c) => {
+                    if (char === 'S') start = [r,c];
+                    if (char === 'E') exit = [r,c];
+                    return map[char] || 0;
+                }));
+                return { rows: grid.length, cols: grid[0].length, start, exit, grid };
+            }
+            // LEVEL_STRINGS / parseGridData preserved above for hand-authored mode.
+            // Active gameplay uses the seeded procedural generator below.
+
+            const TOTAL_LEVELS = 40;
+            const SEED = Math.floor(Date.now() / 1000);
+            const rng = mulberry32(SEED);
+
+            function mulberry32(a) {
+                return function() {
+                    a |= 0; a = a + 0x6D2B79F5 | 0;
+                    let t = Math.imul(a ^ a >>> 15, 1 | a);
+                    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+                };
+            }
+
+            function getTierConfig(floor) {
+                const tier = Math.min(3, Math.floor(floor / 10));
+                const baseTiers = [
+                    { rows: 5,  cols: 5,  broken: 0.08, heavy: 0.10, cracked: 0.12, relic: 0.005 },
+                    { rows: 7,  cols: 7,  broken: 0.12, heavy: 0.14, cracked: 0.16, relic: 0.008 },
+                    { rows: 9,  cols: 9,  broken: 0.16, heavy: 0.16, cracked: 0.18, relic: 0.011 },
+                    { rows: 11, cols: 11, broken: 0.20, heavy: 0.18, cracked: 0.20, relic: 0.014 }
+                ];
+                const cfg = baseTiers[tier];
+                const within = floor % 10;
+                return {
+                    rows: cfg.rows + (within >= 4 ? 1 : 0) + (within >= 8 ? 1 : 0),
+                    cols: cfg.cols + (within >= 6 ? 1 : 0),
+                    broken: cfg.broken,
+                    heavy: cfg.heavy,
+                    cracked: cfg.cracked,
+                    relic: cfg.relic
+                };
+            }
+
+            function carvePath(start, exit, rows, cols, rng) {
+                const path = [start];
+                const visited = new Set([start[0] * cols + start[1]]);
+                let cur = start;
+                let safety = rows * cols * 4;
+
+                while ((cur[0] !== exit[0] || cur[1] !== exit[1]) && safety-- > 0) {
+                    const dr = exit[0] - cur[0];
+                    const dc = exit[1] - cur[1];
+                    const moves = [];
+                    const all = [[1,0],[-1,0],[0,1],[0,-1]];
+                    for (const m of all) {
+                        const toward = (dr > 0 && m[0] === 1) || (dr < 0 && m[0] === -1)
+                                    || (dc > 0 && m[1] === 1) || (dc < 0 && m[1] === -1);
+                        const w = toward ? 4 : 1;
+                        for (let i = 0; i < w; i++) moves.push(m);
+                    }
+                    for (let i = moves.length - 1; i > 0; i--) {
+                        const j = Math.floor(rng() * (i + 1));
+                        [moves[i], moves[j]] = [moves[j], moves[i]];
+                    }
+                    let moved = false;
+                    for (const [dr2, dc2] of moves) {
+                        const nr = cur[0] + dr2;
+                        const nc = cur[1] + dc2;
+                        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                        if (visited.has(nr * cols + nc)) continue;
+                        cur = [nr, nc];
+                        path.push(cur);
+                        visited.add(nr * cols + nc);
+                        moved = true;
+                        break;
+                    }
+                    if (!moved) return null;
+                }
+                if (cur[0] !== exit[0] || cur[1] !== exit[1]) return null;
+                return path;
+            }
+
+            function isPathSolvable(grid, path, maxEnergy) {
+                let e = maxEnergy;
+                for (let i = 1; i < path.length; i++) {
+                    const [r, c] = path[i];
+                    const t = grid[r][c];
+                    if (t === TILE_TYPES.HEAVY) e -= CONFIG.energy.heavy;
+                    else e -= 1;
+                    if (t === TILE_TYPES.POWER) e = Math.min(maxEnergy, e + CONFIG.energy.powerGain);
+                    if (e <= 0 && i < path.length - 1) return false;
+                }
+                return true;
+            }
+
+            function decorateGrid(path, cfg, rng) {
+                const { rows, cols } = cfg;
+                const grid = Array.from({ length: rows }, () => Array(cols).fill(TILE_TYPES.STABLE));
+                const pathSet = new Set(path.map(([r, c]) => r * cols + c));
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (pathSet.has(r * cols + c)) continue;
+                        const roll = rng();
+                        const t1 = cfg.broken;
+                        const t2 = t1 + cfg.heavy;
+                        const t3 = t2 + cfg.cracked;
+                        const t4 = t3 + cfg.relic;
+                        if (roll < t1) grid[r][c] = TILE_TYPES.BROKEN;
+                        else if (roll < t2) grid[r][c] = TILE_TYPES.HEAVY;
+                        else if (roll < t3) grid[r][c] = TILE_TYPES.CRACKED;
+                        else if (roll < t4) grid[r][c] = TILE_TYPES.RELIC;
+                    }
+                }
+
+                for (let i = 1; i < path.length - 1; i++) {
+                    const [r, c] = path[i];
+                    const roll = rng();
+                    if (roll < 0.06) grid[r][c] = TILE_TYPES.POWER;
+                    else if (roll < 0.22) grid[r][c] = TILE_TYPES.CRACKED;
+                }
+
+                const [sr, sc] = path[0];
+                const [er, ec] = path[path.length - 1];
+                grid[sr][sc] = TILE_TYPES.START;
+                grid[er][ec] = TILE_TYPES.EXIT;
+
+                return grid;
+            }
+
+            function tryGenerate(floor, rng) {
+                const cfg = getTierConfig(floor);
+                const { rows, cols } = cfg;
+                const cornerSets = [
+                    [[0, 0],            [rows-1, cols-1]],
+                    [[0, cols-1],       [rows-1, 0]],
+                    [[rows-1, 0],       [0, cols-1]],
+                    [[rows-1, cols-1],  [0, 0]]
+                ];
+                const choice = cornerSets[Math.floor(rng() * 4)];
+                const start = choice[0];
+                const exit = choice[1];
+
+                const path = carvePath(start, exit, rows, cols, rng);
+                if (!path) return null;
+
+                for (let decAttempt = 0; decAttempt < 30; decAttempt++) {
+                    const grid = decorateGrid(path, cfg, rng);
+                    if (isPathSolvable(grid, path, CONFIG.energy.start)) {
+                        return { rows, cols, start, exit, grid };
+                    }
+                }
+                return null;
+            }
+
+            function generateFallback(floor) {
+                const rows = 5, cols = 5;
+                const grid = Array.from({ length: rows }, () => Array(cols).fill(TILE_TYPES.STABLE));
+                grid[0][0] = TILE_TYPES.START;
+                grid[rows-1][cols-1] = TILE_TYPES.EXIT;
+                return { rows, cols, start: [0, 0], exit: [rows-1, cols-1], grid };
+            }
+
+            function generateLevel(floor, rng) {
+                for (let attempt = 0; attempt < 80; attempt++) {
+                    const result = tryGenerate(floor, rng);
+                    if (result) return result;
+                }
+                return generateFallback(floor);
+            }
+
+            const GAME_LEVELS = [];
+            for (let i = 0; i < TOTAL_LEVELS; i++) {
+                GAME_LEVELS.push(generateLevel(i, rng));
+            }
+
+            // Category prefixes (boons) and suffixes (banes)
+            const CATEGORY_PREFIX = {
+                cost_reduce: 'Reinforced',
+                capacity:    'Expanded',
+                recovery:    'Salvaged',
+                tempo_gain:  'Synced',
+                yield:       'Charged'
+            };
+            const CATEGORY_SUFFIX = {
+                cost_increase:  'Decay',
+                capacity_drain: 'Drain',
+                drain:          'Corruption',
+                tempo_loss:     'Erosion',
+                yield_reduce:   'Static'
+            };
+
+            const BOONS = [
+                // Reinforced — tile cost reducers
+                { id: 'heavy_damp',      cat: 'cost_reduce', type: 'boon', name: 'Footing',   icon: '🪶', desc: (s) => `Heavy Tiles cost ${s} less Energy.` },
+                { id: 'crack_pad',       cat: 'cost_reduce', type: 'boon', name: 'Treads',    icon: '🥾', desc: (s) => `Cracked Tiles cost ${s} less Energy (min 0).` },
+                { id: 'firm_grip',       cat: 'cost_reduce', type: 'boon', name: 'Grip',      icon: '🦶', desc: (s) => `Every 10th step costs ${s} less Energy.` },
+                // Expanded — capacity
+                { id: 'max_energy',      cat: 'capacity',    type: 'boon', name: 'Battery',   icon: '🔋', desc: (s) => `+${2*s} Max Energy.` },
+                { id: 'level_bonus',     cat: 'capacity',    type: 'boon', name: 'Reserve',   icon: '🧪', desc: (s) => `+${s} Energy at the start of each Floor.` },
+                { id: 'overflow_cap',    cat: 'capacity',    type: 'boon', name: 'Threshold', icon: '📈', desc: (s) => `Effective energy cap raised by +${s}.` },
+                // Salvaged — recovery on tile/event
+                { id: 'scavenge',        cat: 'recovery',    type: 'boon', name: 'Circuit',   icon: '♻️', desc: (s) => `Recover ${0.5*s} Energy on Cracked tiles (rounded down).` },
+                { id: 'exit_bonus',      cat: 'recovery',    type: 'boon', name: 'Coupling',  icon: '🔌', desc: (s) => `+${s} Energy when reaching the Exit.` },
+                { id: 'heavy_recover',   cat: 'recovery',    type: 'boon', name: 'Plating',   icon: '🛡️', desc: (s) => `Recover ${s} Energy when stepping onto Heavy tiles.` },
+                // Synced — periodic gain
+                { id: 'momentum',        cat: 'tempo_gain',  type: 'boon', name: 'Drive',     icon: '👟', desc: (s) => `Recover ${s} Energy every 10 steps.` },
+                { id: 'tempo_5',         cat: 'tempo_gain',  type: 'boon', name: 'Flow',      icon: '💨', desc: (s) => `Recover ${s} Energy every 5 steps.` },
+                { id: 'tempo_3',         cat: 'tempo_gain',  type: 'boon', name: 'Pulse',     icon: '🌊', desc: (s) => `Recover ${s} Energy every 3 steps.` },
+                // Charged — power yield
+                { id: 'power_surge',     cat: 'yield',       type: 'boon', name: 'Conduit',   icon: '⚡', desc: (s) => `Power Nodes give +${s} extra Energy.` },
+                { id: 'first_surge',     cat: 'yield',       type: 'boon', name: 'Surge',     icon: '✨', desc: (s) => `First Power Node per Floor gives +${2*s} extra Energy.` },
+                { id: 'charged_reserve', cat: 'yield',       type: 'boon', name: 'Reserve',   icon: '🪙', desc: (s) => `Each Power consumed grants +${s} permanent Max Energy.` }
+            ];
+
+            const BANES = [
+                // Decay — tile cost increase
+                { id: 'dense',         cat: 'cost_increase',  type: 'bane', name: 'Pressure', icon: '🪨', desc: (s) => `Heavy Tiles cost ${s} MORE Energy.` },
+                { id: 'crack_decay',   cat: 'cost_increase',  type: 'bane', name: 'Surface',  icon: '🥀', desc: (s) => `Cracked Tiles cost ${s} MORE Energy.` },
+                { id: 'stride_decay',  cat: 'cost_increase',  type: 'bane', name: 'Stride',   icon: '🦴', desc: (s) => `Every 10th step costs ${s} MORE Energy.` },
+                // Drain — capacity reduction
+                { id: 'corroded',      cat: 'capacity_drain', type: 'bane', name: 'Battery',  icon: '🛑', desc: (s) => `Max Energy reduced by ${s}.` },
+                { id: 'level_drain',   cat: 'capacity_drain', type: 'bane', name: 'Reserve',  icon: '🚱', desc: (s) => `Lose ${s} Energy at the start of each Floor.` },
+                { id: 'cap_drain',     cat: 'capacity_drain', type: 'bane', name: 'Cap',      icon: '🪫', desc: (s) => `Effective energy cap reduced by ${s}.` },
+                // Corruption — drain on tile/event
+                { id: 'crack_corrupt', cat: 'drain',          type: 'bane', name: 'Frame',    icon: '⚠️', desc: (s) => `Lose ${s} Energy on Cracked tiles.` },
+                { id: 'exit_corrupt',  cat: 'drain',          type: 'bane', name: 'Reach',    icon: '🚪', desc: (s) => `Lose ${s} Energy when reaching the Exit.` },
+                { id: 'heavy_corrupt', cat: 'drain',          type: 'bane', name: 'Plate',    icon: '💢', desc: (s) => `Lose ${s} Energy when stepping onto Heavy tiles.` },
+                // Erosion — periodic loss
+                { id: 'leak',          cat: 'tempo_loss',     type: 'bane', name: 'Steady',   icon: '💧', desc: (s) => `Lose ${s} Energy every 5 steps.` },
+                { id: 'slow_leak',     cat: 'tempo_loss',     type: 'bane', name: 'Slow',     icon: '🐌', desc: (s) => `Lose ${s} Energy every 10 steps.` },
+                { id: 'rapid_leak',    cat: 'tempo_loss',     type: 'bane', name: 'Rapid',    icon: '🌪️', desc: (s) => `Lose ${s} Energy every 3 steps.` },
+                // Static — yield reduction
+                { id: 'diminish',      cat: 'yield_reduce',   type: 'bane', name: 'Conduit',  icon: '🔻', desc: (s) => `Power Nodes give -${0.5*s} Energy (rounded down).` },
+                { id: 'first_static',  cat: 'yield_reduce',   type: 'bane', name: 'Surge',    icon: '🌫️', desc: (s) => `First Power Node per Floor gives -${s} Energy.` },
+                { id: 'tax_static',    cat: 'yield_reduce',   type: 'bane', name: 'Reserve',  icon: '📉', desc: (s) => `Each Power consumed reduces Max Energy by ${s} (permanent).` }
+            ];
+
+            const ALL_REWARDS = [...BOONS, ...BANES];
+
+            function fullRewardName(r) {
+                return r.type === 'boon'
+                    ? `${CATEGORY_PREFIX[r.cat]} ${r.name}`
+                    : `${r.name} ${CATEGORY_SUFFIX[r.cat]}`;
+            }
+
+            const CONFLICTS = {
+                heavy_damp: 'dense',          dense: 'heavy_damp',
+                crack_pad: 'crack_decay',     crack_decay: 'crack_pad',
+                firm_grip: 'stride_decay',    stride_decay: 'firm_grip',
+                max_energy: 'corroded',       corroded: 'max_energy',
+                level_bonus: 'level_drain',   level_drain: 'level_bonus',
+                overflow_cap: 'cap_drain',    cap_drain: 'overflow_cap',
+                scavenge: 'crack_corrupt',    crack_corrupt: 'scavenge',
+                exit_bonus: 'exit_corrupt',   exit_corrupt: 'exit_bonus',
+                heavy_recover: 'heavy_corrupt', heavy_corrupt: 'heavy_recover',
+                momentum: 'slow_leak',        slow_leak: 'momentum',
+                tempo_5: 'leak',              leak: 'tempo_5',
+                tempo_3: 'rapid_leak',        rapid_leak: 'tempo_3',
+                power_surge: 'diminish',      diminish: 'power_surge',
+                first_surge: 'first_static',  first_static: 'first_surge',
+                charged_reserve: 'tax_static', tax_static: 'charged_reserve'
+            };
+
+            let G = {
+                level: 0,
+                energy: CONFIG.energy.start,
+                playerPos: [0, 0],
+                currentGrid: [],
+                isGameOver: false,
+                steps: 0,
+                rewards: {},
+                relics: 0,
+                minMovesThisLevel: 0,
+                firstPowerThisLevel: false,
+                permanentMaxBonus: 0,
+                devUnlocked: false
+            };
+
+            const els = {
+                grid: document.getElementById('grid-container'),
+                level: document.getElementById('level-display'),
+                energy: document.getElementById('energy-display'),
+                maxEnergy: document.getElementById('max-energy-display'),
+                log: document.getElementById('log'),
+                overlay: document.getElementById('overlay'),
+                overlayTitle: document.getElementById('overlay-title'),
+                overlayDesc: document.getElementById('overlay-desc'),
+                choices: document.getElementById('reward-choices'),
+                actionBtn: document.getElementById('overlay-action-btn'),
+                tooltip: document.getElementById('tooltip'),
+                activeRewards: document.getElementById('active-rewards'),
+                seedBar: document.getElementById('seed-bar'),
+                seedDisplay: document.getElementById('seed-display')
+            };
+
+            // Dynamic Calculations
+            const stk = (id) => G.rewards[id] || 0;
+
+            function getMaxEnergy() {
+                let m = CONFIG.energy.start;
+                m += stk('max_energy') * 2;
+                m -= stk('corroded');
+                m += G.permanentMaxBonus;
+                return Math.max(1, m);
+            }
+            function getEffectiveCap() {
+                return Math.max(1, getMaxEnergy() + stk('overflow_cap') - stk('cap_drain'));
+            }
+            function getHeavyCost() {
+                let c = CONFIG.energy.heavy;
+                c -= stk('heavy_damp');
+                c += stk('dense');
+                return Math.max(1, c);
+            }
+            function getCrackedCost() {
+                let c = CONFIG.energy.cracked;
+                c -= stk('crack_pad');
+                c += stk('crack_decay');
+                return Math.max(0, c);
+            }
+            function getPowerGain(isFirstPower) {
+                let p = CONFIG.energy.powerGain;
+                p += stk('power_surge');
+                p -= Math.floor(stk('diminish') * 0.5);
+                if (isFirstPower) {
+                    p += stk('first_surge') * 2;
+                    p -= stk('first_static');
+                }
+                return Math.max(0, p);
+            }
+            function getCrackedRecycle() {
+                return Math.floor(stk('scavenge') * 0.5);
+            }
+            function getCrackedDrain()  { return stk('crack_corrupt'); }
+            function getHeavyRecover()  { return stk('heavy_recover'); }
+            function getHeavyDrain()    { return stk('heavy_corrupt'); }
+            function getExitBonus()     { return stk('exit_bonus'); }
+            function getExitDrain()     { return stk('exit_corrupt'); }
+            function getLevelStartBonus() { return stk('level_bonus'); }
+            function getLevelStartDrain() { return stk('level_drain'); }
+
+            function applyStepCostMods(cost, stepN) {
+                if (stk('firm_grip') && stepN % 10 === 0) cost = Math.max(0, cost - stk('firm_grip'));
+                if (stk('stride_decay') && stepN % 10 === 0) cost += stk('stride_decay');
+                return cost;
+            }
+
+            function getStepEnergyDelta(stepN) {
+                let d = 0;
+                if (stk('momentum') && stepN % 10 === 0) d += stk('momentum');
+                if (stk('tempo_5')  && stepN % 5  === 0) d += stk('tempo_5');
+                if (stk('tempo_3')  && stepN % 3  === 0) d += stk('tempo_3');
+                if (stk('slow_leak')&& stepN % 10 === 0) d -= stk('slow_leak');
+                if (stk('leak')     && stepN % 5  === 0) d -= stk('leak');
+                if (stk('rapid_leak')&&stepN % 3  === 0) d -= stk('rapid_leak');
+                return d;
+            }
+
+            // Core Logic
+            function initLevel(levelIdx) {
+                G.isGameOver = false;
+                G.steps = 0;
+                G.firstPowerThisLevel = false;
+                const data = GAME_LEVELS[levelIdx];
+                G.currentGrid = JSON.parse(JSON.stringify(data.grid));
+                G.playerPos = [...data.start];
+
+                // Level-start bonuses/drains (cap to current effective max)
+                G.energy += getLevelStartBonus();
+                G.energy -= getLevelStartDrain();
+                G.energy = Math.min(G.energy, getEffectiveCap());
+                if (levelIdx === 0) G.energy = getEffectiveCap();
+
+                G.minMovesThisLevel = computeMinMoves(data, G.energy);
+
+                els.grid.style.gridTemplateColumns = `repeat(${data.cols}, 1fr)`;
+                render();
+                renderActiveRewards();
+                renderStats();
+                const minTxt = G.minMovesThisLevel > 0 ? ` Optimal path: ${G.minMovesThisLevel} moves.` : '';
+                updateLog(`Entered Floor ${levelIdx + 1}.${minTxt}`);
+            }
+
+            function render() {
+                els.grid.innerHTML = '';
+                els.level.textContent = G.level + 1;
+                els.energy.textContent = G.energy;
+                
+                let currentCap = getEffectiveCap();
+                els.maxEnergy.textContent = currentCap;
+
+                if (G.energy <= Math.max(3, currentCap * 0.2)) { els.energy.classList.add('critical'); }
+                else { els.energy.classList.remove('critical'); }
+
+                const currentLevelData = GAME_LEVELS[G.level];
+
+                for (let r = 0; r < currentLevelData.rows; r++) {
+                    for (let c = 0; c < currentLevelData.cols; c++) {
+                        const tileVal = G.currentGrid[r][c];
+                        const tileDef = TILE_MAP[tileVal];
+                        
+                        const div = document.createElement('div');
+                        div.className = 'tile';
+                        div.dataset.type = tileDef.type;
+
+                        if (tileDef.icon) {
+                            const iconSpan = document.createElement('span');
+                            iconSpan.className = 'tile-icon';
+                            iconSpan.textContent = tileDef.icon;
+                            div.appendChild(iconSpan);
+                        }
+
+                        if (!G.isGameOver) {
+                            if (isAdjacent([r, c], G.playerPos) && tileVal !== TILE_TYPES.BROKEN) {
+                                // Clickable
+                            } else if (r === G.playerPos[0] && c === G.playerPos[1]) {
+                                // Current position
+                            } else {
+                                div.classList.add('unreachable');
+                            }
+                        }
+
+                        if (r === G.playerPos[0] && c === G.playerPos[1]) {
+                            const player = document.createElement('div');
+                            player.className = 'player';
+                            div.appendChild(player);
+                        }
+
+                        // Tooltip events
+                        div.addEventListener('mouseenter', (e) => {
+                            els.tooltip.innerHTML = getTileTooltipText(tileDef.type);
+                            els.tooltip.style.display = 'block';
+                            updateTooltipPosition(e);
+                        });
+                        div.addEventListener('mousemove', updateTooltipPosition);
+                        div.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
+
+                        div.addEventListener('click', () => handleTileClick(r, c));
+                        els.grid.appendChild(div);
+                    }
+                }
+            }
+
+            function getTileTooltipText(type) {
+                switch(type) {
+                    case 'stable': return `Stable Path\nCost: 1 Energy`;
+                    case 'start':  return `Start Point\nCost: 1 Energy`;
+                    case 'exit':   return `Exit Node\nCost: 1 Energy\nProceed to next floor.`;
+                    case 'cracked': {
+                        const rec = getCrackedRecycle();
+                        const drn = getCrackedDrain();
+                        let t = `Unstable Floor\nCost: ${getCrackedCost()} Energy\nCollapses after stepping off.`;
+                        if (rec) t += `\n[Active] Recovers ${rec} Energy.`;
+                        if (drn) t += `\n[Active] Drains ${drn} Energy.`;
+                        return t;
+                    }
+                    case 'heavy': {
+                        const rec = getHeavyRecover();
+                        const drn = getHeavyDrain();
+                        let t = `Heavy Gravity\nCost: ${getHeavyCost()} Energy`;
+                        if (rec) t += `\n[Active] Recovers ${rec} Energy.`;
+                        if (drn) t += `\n[Active] Drains ${drn} Energy.`;
+                        return t;
+                    }
+                    case 'power':  return `Power Node\nCost: 1 Energy to enter.\nRestores ${getPowerGain(!G.firstPowerThisLevel)} Energy.`;
+                    case 'relic':  return `Relic Fragment\nCost: 2 Energy.\nGrants +1 stack. Stacks pay out as Energy at the end of any Floor cleared in optimal moves.`;
+                    case 'broken': return `Broken Tile\nImpassable.`;
+                }
+                return "";
+            }
+
+            function updateTooltipPosition(e) {
+                let x = e.clientX + 15;
+                let y = e.clientY + 15;
+                
+                // Keep tooltip on screen
+                if (x + els.tooltip.offsetWidth > window.innerWidth) x = e.clientX - els.tooltip.offsetWidth - 15;
+                if (y + els.tooltip.offsetHeight > window.innerHeight) y = e.clientY - els.tooltip.offsetHeight - 15;
+                
+                els.tooltip.style.left = x + 'px';
+                els.tooltip.style.top = y + 'px';
+            }
+
+            function handleTileClick(row, col) {
+                if (G.isGameOver) return;
+                if (!isAdjacent([row, col], G.playerPos)) return;
+
+                const clickedTileVal = G.currentGrid[row][col];
+                if (clickedTileVal === TILE_TYPES.BROKEN) return;
+
+                const oldPos = [...G.playerPos];
+                const oldEnergy = G.energy;
+                let logMsg = "";
+                G.steps++;
+                const stepN = G.steps;
+
+                // 1. Base cost by tile type
+                let cost = CONFIG.energy.stable;
+                switch(clickedTileVal) {
+                    case TILE_TYPES.HEAVY:   cost = getHeavyCost();   logMsg = "Heavy gravity zone."; break;
+                    case TILE_TYPES.CRACKED: cost = getCrackedCost(); logMsg = "Floor surface destabilized."; break;
+                    case TILE_TYPES.RELIC:   cost = 2;                logMsg = "Relic recovered (+1 stack)."; break;
+                }
+                cost = applyStepCostMods(cost, stepN);
+                G.energy -= cost;
+
+                // 2. Tile-specific gains/drains
+                if (clickedTileVal === TILE_TYPES.CRACKED) {
+                    const rec = getCrackedRecycle();
+                    const drn = getCrackedDrain();
+                    if (rec) { G.energy += rec; logMsg += ` +${rec} reclaimed.`; }
+                    if (drn) { G.energy -= drn; logMsg += ` -${drn} corruption.`; }
+                } else if (clickedTileVal === TILE_TYPES.HEAVY) {
+                    const rec = getHeavyRecover();
+                    const drn = getHeavyDrain();
+                    if (rec) { G.energy += rec; logMsg += ` +${rec} plating.`; }
+                    if (drn) { G.energy -= drn; logMsg += ` -${drn} corruption.`; }
+                }
+
+                // Move player
+                G.playerPos = [row, col];
+
+                // 3. Post-move tile interactions
+                if (clickedTileVal === TILE_TYPES.POWER) {
+                    const isFirst = !G.firstPowerThisLevel;
+                    const gain = getPowerGain(isFirst);
+                    G.energy += gain;
+                    G.firstPowerThisLevel = true;
+                    G.permanentMaxBonus += stk('charged_reserve');
+                    G.permanentMaxBonus -= stk('tax_static');
+                    G.currentGrid[row][col] = TILE_TYPES.STABLE;
+                    logMsg = `Power node: +${gain} Energy.`;
+                } else if (clickedTileVal === TILE_TYPES.RELIC) {
+                    G.relics++;
+                    G.currentGrid[row][col] = TILE_TYPES.STABLE;
+                } else if (clickedTileVal === TILE_TYPES.EXIT) {
+                    const eb = getExitBonus();
+                    const ed = getExitDrain();
+                    if (eb) { G.energy += eb; logMsg += ` +${eb} coupling.`; }
+                    if (ed) { G.energy -= ed; logMsg += ` -${ed} reach.`; }
+                }
+
+                // 4. Periodic step modifiers
+                G.energy += getStepEnergyDelta(stepN);
+
+                // 5. Cap to effective max
+                G.energy = Math.min(G.energy, getEffectiveCap());
+
+                if (G.energy > oldEnergy) flashEnergy('gain');
+                else if (G.energy < oldEnergy) flashEnergy('loss');
+
+                // 6. Win check
+                if (clickedTileVal === TILE_TYPES.EXIT) {
+                    if (G.currentGrid[oldPos[0]][oldPos[1]] === TILE_TYPES.CRACKED) {
+                        G.currentGrid[oldPos[0]][oldPos[1]] = TILE_TYPES.BROKEN;
+                    }
+                    completeLevel();
+                    return;
+                }
+
+                // Old cracked → broken
+                if (G.currentGrid[oldPos[0]][oldPos[1]] === TILE_TYPES.CRACKED) {
+                    G.currentGrid[oldPos[0]][oldPos[1]] = TILE_TYPES.BROKEN;
+                }
+
+                updateLog(logMsg || `Moved. -${cost} Energy.`);
+
+                if (G.energy <= 0) {
+                    gameOver();
+                } else {
+                    render();
+                    renderActiveRewards();
+                    renderStats();
+                }
+            }
+
+            function isAdjacent(pos1, pos2) {
+                const rowDiff = Math.abs(pos1[0] - pos2[0]);
+                const colDiff = Math.abs(pos1[1] - pos2[1]);
+                return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+            }
+
+            // Energy-aware shortest-path BFS. Approximates first_surge/first_static as base power.
+            function computeMinMoves(level, startEnergy) {
+                const { grid, start, exit, rows, cols } = level;
+                const cap = getEffectiveCap();
+                const startKey = `${start[0]},${start[1]}`;
+                if (start[0] === exit[0] && start[1] === exit[1]) return 0;
+
+                let frontier = new Map();
+                frontier.set(startKey, Math.min(cap, startEnergy));
+                const seen = new Map([[startKey, frontier.get(startKey)]]);
+
+                let steps = 0;
+                const maxSteps = rows * cols * 4;
+
+                while (frontier.size > 0 && steps < maxSteps) {
+                    steps++;
+                    const stepN = steps;
+                    const next = new Map();
+
+                    for (const [posKey, e] of frontier) {
+                        const [r, c] = posKey.split(',').map(Number);
+                        for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                            const tile = grid[nr][nc];
+                            if (tile === TILE_TYPES.BROKEN) continue;
+
+                            let cost = CONFIG.energy.stable;
+                            if (tile === TILE_TYPES.HEAVY)        cost = getHeavyCost();
+                            else if (tile === TILE_TYPES.CRACKED) cost = getCrackedCost();
+                            else if (tile === TILE_TYPES.RELIC)   cost = 2;
+                            cost = applyStepCostMods(cost, stepN);
+
+                            let newE = e - cost;
+                            if (tile === TILE_TYPES.CRACKED) newE += getCrackedRecycle() - getCrackedDrain();
+                            else if (tile === TILE_TYPES.HEAVY) newE += getHeavyRecover() - getHeavyDrain();
+                            else if (tile === TILE_TYPES.POWER) newE += getPowerGain(false);
+                            else if (tile === TILE_TYPES.EXIT)  newE += getExitBonus() - getExitDrain();
+
+                            newE += getStepEnergyDelta(stepN);
+                            newE = Math.min(cap, newE);
+
+                            const isExit = (nr === exit[0] && nc === exit[1]);
+                            if (newE <= 0 && !isExit) continue;
+                            if (isExit) return stepN;
+
+                            const nKey = `${nr},${nc}`;
+                            if (seen.has(nKey) && seen.get(nKey) >= newE) continue;
+                            const cur = next.get(nKey);
+                            if (cur !== undefined && cur >= newE) continue;
+                            next.set(nKey, newE);
+                            seen.set(nKey, newE);
+                        }
+                    }
+                    frontier = next;
+                }
+                return -1;
+            }
+
+            function updateLog(msg) {
+                els.log.textContent = msg;
+            }
+
+            function flashEnergy(type) {
+                const cls = type === 'gain' ? 'flash-gain' : 'flash-loss';
+                els.energy.classList.remove('flash-gain', 'flash-loss');
+                void els.energy.offsetWidth;
+                els.energy.classList.add(cls);
+                setTimeout(() => els.energy.classList.remove(cls), 700);
+            }
+
+            function renderActiveRewards() {
+                els.activeRewards.innerHTML = '';
+                for (let [id, count] of Object.entries(G.rewards)) {
+                    let rInfo = ALL_REWARDS.find(r => r.id === id);
+                    if(!rInfo) continue;
+
+                    let div = document.createElement('div');
+                    div.className = `reward-icon-container ${rInfo.type}`;
+                    div.textContent = rInfo.icon;
+                    
+                    if(count > 0) {
+                        let sub = document.createElement('span');
+                        sub.className = 'stack-count';
+                        sub.textContent = count;
+                        div.appendChild(sub);
+                    }
+
+                    if (id === 'momentum') {
+                        let stepSub = document.createElement('span');
+                        stepSub.className = 'step-count';
+                        stepSub.textContent = G.steps % 10;
+                        div.appendChild(stepSub);
+                    }
+
+                    div.addEventListener('mouseenter', (e) => {
+                        els.tooltip.innerHTML = `<strong>${rInfo.name}</strong>\n${rInfo.desc(count)}`;
+                        els.tooltip.style.display = 'block';
+                        updateTooltipPosition(e);
+                    });
+                    div.addEventListener('mousemove', updateTooltipPosition);
+                    div.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
+
+                    els.activeRewards.appendChild(div);
+                }
+            }
+
+            // Game State Flows
+            function gameOver() {
+                G.isGameOver = true;
+                render(); 
+                updateLog("SYSTEM CRITICAL FAILURE. Out of energy.");
+                els.energy.style.color = 'var(--danger-color)';
+                
+                setTimeout(() => {
+                    showMessage("POWER DEPLETED", `Drone failed on Floor ${G.level + 1}.`, true);
+                }, 800);
+            }
+
+            function completeLevel() {
+                G.isGameOver = true;
+                let exitMsg = "EXIT SECURED.";
+                if (G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel && G.relics > 0) {
+                    G.energy += G.relics;
+                    flashEnergy('gain');
+                    exitMsg = `PERFECT RUN. Relics triggered: +${G.relics} Energy.`;
+                } else if (G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel) {
+                    exitMsg = "PERFECT RUN.";
+                }
+                render();
+                renderActiveRewards();
+                renderStats();
+                updateLog(exitMsg + " Analyzing next sector...");
+
+                setTimeout(() => {
+                    if (G.level + 1 >= GAME_LEVELS.length) {
+                        showMessage("CORE SECURED", "VICTORY! You have fully navigated the ruins and stabilized the core.", false);
+                    } else {
+                        showRewards();
+                    }
+                }, 900);
+            }
+
+            function getShuffled(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+            function showRewards() {
+                els.overlayTitle.textContent = "SYSTEM STABLE";
+                els.overlayDesc.textContent = "Select a subroutine package for the next floor:";
+                els.choices.innerHTML = '';
+                els.actionBtn.style.display = 'none';
+
+                const shuffledBoons = getShuffled(BOONS);
+                const shuffledBanes = getShuffled(BANES);
+                const usedBoons = new Set();
+                const usedBanes = new Set();
+                const options = [];
+
+                for (const boon of shuffledBoons) {
+                    if (options.length >= 3) break;
+                    if (usedBoons.has(boon.id)) continue;
+                    for (const bane of shuffledBanes) {
+                        if (usedBanes.has(bane.id)) continue;
+                        if (CONFLICTS[boon.id] === bane.id) continue;
+                        const title = `${CATEGORY_PREFIX[boon.cat]} ${CATEGORY_SUFFIX[bane.cat]}`;
+                        options.push({ title, boons: [boon], banes: [bane] });
+                        usedBoons.add(boon.id);
+                        usedBanes.add(bane.id);
+                        break;
+                    }
+                }
+
+                options.forEach(opt => {
+                    const btn = document.createElement('div');
+                    btn.className = 'reward-button';
+
+                    let html = `<div class="reward-title">${opt.title}</div>`;
+                    opt.boons.forEach(b => html += `<div class="boon-text">+ ${fullRewardName(b)}: ${b.desc(1)}</div>`);
+                    opt.banes.forEach(b => html += `<div class="bane-text">- ${fullRewardName(b)}: ${b.desc(1)}</div>`);
+
+                    btn.innerHTML = html;
+                    btn.addEventListener('click', () => applyRewardPackage(opt));
+                    els.choices.appendChild(btn);
+                });
+
+                els.overlay.style.display = 'flex';
+            }
+
+            function applyRewardPackage(opt) {
+                const oldCap = getEffectiveCap();
+                opt.boons.forEach(b => { G.rewards[b.id] = (G.rewards[b.id] || 0) + 1; });
+                opt.banes.forEach(b => { G.rewards[b.id] = (G.rewards[b.id] || 0) + 1; });
+                const newCap = getEffectiveCap();
+                if (newCap > oldCap) G.energy += (newCap - oldCap);
+
+                G.level++;
+                els.overlay.style.display = 'none';
+                initLevel(G.level);
+            }
+
+            function showMessage(title, desc, isRestart) {
+                els.overlayTitle.textContent = title;
+                els.overlayDesc.textContent = desc;
+                els.choices.innerHTML = '';
+                els.actionBtn.style.display = 'block';
+                
+                els.actionBtn.textContent = isRestart ? "REBOOT SYSTEM" : "PLAY AGAIN";
+                els.actionBtn.onclick = () => window.location.reload();
+
+                els.overlay.style.display = 'flex';
+            }
+
+            // Seed display + click-to-copy
+            els.seedDisplay.textContent = SEED;
+            els.seedBar.addEventListener('click', () => {
+                navigator.clipboard.writeText(String(SEED)).catch(() => {});
+                const original = `SEED: ${SEED}`;
+                els.seedBar.textContent = 'COPIED';
+                setTimeout(() => { els.seedBar.textContent = original; }, 900);
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (G.isGameOver) return;
+                if (els.overlay.style.display === 'flex') return;
+                let dr = 0, dc = 0;
+                switch (e.key.toLowerCase()) {
+                    case 'arrowup': case 'w': dr = -1; break;
+                    case 'arrowdown': case 's': dr = 1; break;
+                    case 'arrowleft': case 'a': dc = -1; break;
+                    case 'arrowright': case 'd': dc = 1; break;
+                    default: return;
+                }
+                e.preventDefault();
+                const cur = GAME_LEVELS[G.level];
+                const nr = G.playerPos[0] + dr;
+                const nc = G.playerPos[1] + dc;
+                if (nr < 0 || nr >= cur.rows || nc < 0 || nc >= cur.cols) return;
+                handleTileClick(nr, nc);
+            });
+
+            // Boot up game
+            initLevel(0);
+        });
+    </script>
+</body>
+</html>
