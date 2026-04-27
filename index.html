@@ -257,6 +257,10 @@
             width: 180px;
             flex-shrink: 0;
         }
+        #game-body-spacer {
+            width: 180px;
+            flex-shrink: 0;
+        }
         .relic-col {
             display: flex;
             flex-direction: column;
@@ -317,6 +321,7 @@
         @media (max-width: 600px) {
             #game-body { flex-direction: column; }
             #active-relics { width: 100%; }
+            #game-body-spacer { display: none; }
         }
 
         .reward-icon-container.armed {
@@ -472,17 +477,31 @@
         .reward-button.rarity-common   { border-color: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.25); }
         .reward-button.rarity-uncommon { border-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.35); }
         .reward-button.rarity-rare     { border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); }
+        .reward-button.rarity-epic     { border-color: #a855f7; box-shadow: 0 0 16px rgba(168, 85, 247, 0.55); }
 
-        .reward-rarity-tag {
-            font-size: 0.7rem;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 2px;
+        .remove-stacks-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-        .reward-rarity-tag.rarity-common   { color: #ffffff; }
-        .reward-rarity-tag.rarity-uncommon { color: #22c55e; }
-        .reward-rarity-tag.rarity-rare     { color: #3b82f6; }
+        .remove-stacks-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .remove-stack-button {
+            margin: 6px 0;
+        }
+        .remove-stack-button.is-boon { border-color: var(--text-color); box-shadow: 0 0 6px rgba(88, 214, 141, 0.3); }
+        .remove-stack-button.is-bane { border-color: var(--danger-color); box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
+        .remove-stacks-empty {
+            color: #6b7280;
+            text-align: center;
+            font-size: 0.85rem;
+            font-style: italic;
+            padding: 16px 0;
+        }
 
         .reward-button:hover {
             background: #1f2937;
@@ -758,6 +777,7 @@
             <div id="game-body">
                 <div id="active-relics"></div>
                 <div id="grid-container"></div>
+                <div id="game-body-spacer" aria-hidden="true"></div>
             </div>
 
             <div id="rewards-section">
@@ -1088,48 +1108,48 @@
 
             const BOONS = [
                 // Reinforced — tile cost reducers
-                { id: 'heavy_damp',      cat: 'cost_reduce', type: 'boon', name: 'Footing',   icon: '🪶', desc: (s) => `Heavy Tiles cost ${s} less Energy.` },
-                { id: 'crack_pad',       cat: 'cost_reduce', type: 'boon', name: 'Treads',    icon: '🥾', desc: (s) => `Cracked Tiles cost ${s} less Energy (min 0).` },
-                { id: 'firm_grip',       cat: 'cost_reduce', type: 'boon', name: 'Grip',      icon: '🦶', desc: (s) => `Every 10th step costs ${s} less Energy.` },
+                { id: 'heavy_damp',      cat: 'cost_reduce', type: 'boon', name: 'Footing',   icon: '🪶', desc: (s) => `Heavy Tiles cost ${0.5*s} less Energy.`,                value: (s) => 0.5*s },
+                { id: 'crack_pad',       cat: 'cost_reduce', type: 'boon', name: 'Treads',    icon: '🥾', desc: (s) => `Cracked Tiles cost ${0.5*s} less Energy (min 0).`,      value: (s) => 0.5*s },
+                { id: 'firm_grip',       cat: 'cost_reduce', type: 'boon', name: 'Grip',      icon: '🦶', desc: (s) => `Every 10th step costs ${0.5*s} less Energy.`,          value: (s) => 0.5*s },
                 // Expanded — capacity
-                { id: 'max_energy',      cat: 'capacity',    type: 'boon', name: 'Battery',   icon: '🔋', desc: (s) => `+${2*s} Max Energy.` },
-                { id: 'level_bonus',     cat: 'capacity',    type: 'boon', name: 'Reserve',   icon: '🧪', desc: (s) => `+${s} Energy at the start of each Floor.` },
-                { id: 'overflow_cap',    cat: 'capacity',    type: 'boon', name: 'Threshold', icon: '📈', desc: (s) => `Effective energy cap raised by +${s}.` },
+                { id: 'max_energy',      cat: 'capacity',    type: 'boon', name: 'Battery',   icon: '🔋', desc: (s) => `+${2*s} Max Energy.`,                                  value: (s) => 2*s },
+                { id: 'level_bonus',     cat: 'capacity',    type: 'boon', name: 'Reserve',   icon: '🧪', desc: (s) => `+${0.5*s} Energy at the start of each Floor.`,         value: (s) => 0.5*s },
+                { id: 'overflow_cap',    cat: 'capacity',    type: 'boon', name: 'Threshold', icon: '📈', desc: (s) => `Effective energy cap raised by +${0.5*s}.`,             value: (s) => 0.5*s },
                 // Salvaged — recovery on tile/event
-                { id: 'scavenge',        cat: 'recovery',    type: 'boon', name: 'Circuit',   icon: '♻️', desc: (s) => `Recover ${0.5*s} Energy on Cracked tiles (rounded down).` },
-                { id: 'exit_bonus',      cat: 'recovery',    type: 'boon', name: 'Coupling',  icon: '🔌', desc: (s) => `+${s} Energy when reaching the Exit.` },
-                { id: 'heavy_recover',   cat: 'recovery',    type: 'boon', name: 'Plating',   icon: '🛡️', desc: (s) => `Recover ${s} Energy when stepping onto Heavy tiles.` },
+                { id: 'scavenge',        cat: 'recovery',    type: 'boon', name: 'Circuit',   icon: '♻️', desc: (s) => `Recover ${0.5*s} Energy on Cracked tiles.`,             value: (s) => 0.5*s },
+                { id: 'exit_bonus',      cat: 'recovery',    type: 'boon', name: 'Coupling',  icon: '🔌', desc: (s) => `+${0.5*s} Energy when reaching the Exit.`,              value: (s) => 0.5*s },
+                { id: 'heavy_recover',   cat: 'recovery',    type: 'boon', name: 'Plating',   icon: '🛡️', desc: (s) => `Recover ${0.5*s} Energy when stepping onto Heavy tiles.`, value: (s) => 0.5*s },
                 // Synced — periodic gain
-                { id: 'momentum',        cat: 'tempo_gain',  type: 'boon', name: 'Drive',     icon: '👟', desc: (s) => `Recover ${s} Energy every 10 steps.` },
-                { id: 'tempo_5',         cat: 'tempo_gain',  type: 'boon', name: 'Flow',      icon: '💨', desc: (s) => `Recover ${s} Energy every 5 steps.` },
-                { id: 'tempo_3',         cat: 'tempo_gain',  type: 'boon', name: 'Pulse',     icon: '🌊', desc: (s) => `Recover ${s} Energy every 3 steps.` },
+                { id: 'momentum',        cat: 'tempo_gain',  type: 'boon', name: 'Drive',     icon: '👟', desc: (s) => `Recover ${0.5*s} Energy every 10 steps.`,               value: (s) => 0.5*s },
+                { id: 'tempo_5',         cat: 'tempo_gain',  type: 'boon', name: 'Flow',      icon: '💨', desc: (s) => `Recover ${0.5*s} Energy every 5 steps.`,                value: (s) => 0.5*s },
+                { id: 'tempo_3',         cat: 'tempo_gain',  type: 'boon', name: 'Pulse',     icon: '🌊', desc: (s) => `Recover ${0.5*s} Energy every 3 steps.`,                value: (s) => 0.5*s },
                 // Charged — power yield
-                { id: 'power_surge',     cat: 'yield',       type: 'boon', name: 'Conduit',   icon: '⚡', desc: (s) => `Power Nodes give +${s} extra Energy.` },
-                { id: 'first_surge',     cat: 'yield',       type: 'boon', name: 'Surge',     icon: '✨', desc: (s) => `First Power Node per Floor gives +${2*s} extra Energy.` },
-                { id: 'charged_reserve', cat: 'yield',       type: 'boon', name: 'Reserve',   icon: '🪙', desc: (s) => `Each Power consumed grants +${s} permanent Max Energy.` }
+                { id: 'power_surge',     cat: 'yield',       type: 'boon', name: 'Conduit',   icon: '⚡', desc: (s) => `Power Nodes give +${0.5*s} extra Energy.`,              value: (s) => 0.5*s },
+                { id: 'first_surge',     cat: 'yield',       type: 'boon', name: 'Surge',     icon: '✨', desc: (s) => `First Power Node per Floor gives +${2*s} extra Energy.`, value: (s) => 2*s },
+                { id: 'charged_reserve', cat: 'yield',       type: 'boon', name: 'Reserve',   icon: '🪙', desc: (s) => `Each Power consumed grants +${0.5*s} permanent Max Energy.`, value: (s) => 0.5*s }
             ];
 
             const BANES = [
                 // Decay — tile cost increase
-                { id: 'dense',         cat: 'cost_increase',  type: 'bane', name: 'Pressure', icon: '🪨', desc: (s) => `Heavy Tiles cost ${s} MORE Energy.` },
-                { id: 'crack_decay',   cat: 'cost_increase',  type: 'bane', name: 'Surface',  icon: '🥀', desc: (s) => `Cracked Tiles cost ${s} MORE Energy.` },
-                { id: 'tariff',        cat: 'cost_increase',  type: 'bane', name: 'Tariff',   icon: '💸', desc: (s) => `Stable Tiles cost ${s} MORE Energy.` },
+                { id: 'dense',         cat: 'cost_increase',  type: 'bane', name: 'Pressure', icon: '🪨', desc: (s) => `Heavy Tiles cost ${0.5*s} MORE Energy.`,    value: (s) => 0.5*s },
+                { id: 'crack_decay',   cat: 'cost_increase',  type: 'bane', name: 'Surface',  icon: '🥀', desc: (s) => `Cracked Tiles cost ${0.5*s} MORE Energy.`,  value: (s) => 0.5*s },
+                { id: 'tariff',        cat: 'cost_increase',  type: 'bane', name: 'Tariff',   icon: '💸', desc: (s) => `Stable Tiles cost ${0.5*s} MORE Energy.`,   value: (s) => 0.5*s },
                 // Drain — capacity reduction
-                { id: 'corroded',      cat: 'capacity_drain', type: 'bane', name: 'Battery',  icon: '🛑', desc: (s) => `Max Energy reduced by ${s}.` },
-                { id: 'level_drain',   cat: 'capacity_drain', type: 'bane', name: 'Reserve',  icon: '🚱', desc: (s) => `Lose ${s} Energy at the start of each Floor.` },
-                { id: 'cap_drain',     cat: 'capacity_drain', type: 'bane', name: 'Cap',      icon: '🪫', desc: (s) => `Effective energy cap reduced by ${s}.` },
+                { id: 'corroded',      cat: 'capacity_drain', type: 'bane', name: 'Battery',  icon: '🛑', desc: (s) => `Max Energy reduced by ${0.5*s}.`,           value: (s) => 0.5*s },
+                { id: 'level_drain',   cat: 'capacity_drain', type: 'bane', name: 'Reserve',  icon: '🚱', desc: (s) => `Lose ${0.5*s} Energy at the start of each Floor.`, value: (s) => 0.5*s },
+                { id: 'cap_drain',     cat: 'capacity_drain', type: 'bane', name: 'Cap',      icon: '🪫', desc: (s) => `Effective energy cap reduced by ${0.5*s}.`, value: (s) => 0.5*s },
                 // Corruption — drain on tile/event
-                { id: 'crack_corrupt', cat: 'drain',          type: 'bane', name: 'Frame',    icon: '⚠️', desc: (s) => `Lose ${s} Energy on Cracked tiles.` },
-                { id: 'exit_corrupt',  cat: 'drain',          type: 'bane', name: 'Reach',    icon: '🚪', desc: (s) => `Lose ${s} Energy when reaching the Exit.` },
-                { id: 'heavy_corrupt', cat: 'drain',          type: 'bane', name: 'Plate',    icon: '💢', desc: (s) => `Lose ${s} Energy when stepping onto Heavy tiles.` },
+                { id: 'crack_corrupt', cat: 'drain',          type: 'bane', name: 'Frame',    icon: '⚠️', desc: (s) => `Lose ${0.5*s} Energy on Cracked tiles.`,    value: (s) => 0.5*s },
+                { id: 'exit_corrupt',  cat: 'drain',          type: 'bane', name: 'Reach',    icon: '🚪', desc: (s) => `Lose ${0.5*s} Energy when reaching the Exit.`, value: (s) => 0.5*s },
+                { id: 'heavy_corrupt', cat: 'drain',          type: 'bane', name: 'Plate',    icon: '💢', desc: (s) => `Lose ${0.5*s} Energy when stepping onto Heavy tiles.`, value: (s) => 0.5*s },
                 // Erosion — periodic loss
-                { id: 'leak',          cat: 'tempo_loss',     type: 'bane', name: 'Steady',   icon: '💧', desc: (s) => `Lose ${s} Energy every 5 steps.` },
-                { id: 'slow_leak',     cat: 'tempo_loss',     type: 'bane', name: 'Slow',     icon: '🐌', desc: (s) => `Lose ${s} Energy every 10 steps.` },
-                { id: 'rapid_leak',    cat: 'tempo_loss',     type: 'bane', name: 'Rapid',    icon: '🌪️', desc: (s) => `Lose ${s} Energy every 3 steps.` },
+                { id: 'leak',          cat: 'tempo_loss',     type: 'bane', name: 'Steady',   icon: '💧', desc: (s) => `Lose ${0.5*s} Energy every 5 steps.`,       value: (s) => 0.5*s },
+                { id: 'slow_leak',     cat: 'tempo_loss',     type: 'bane', name: 'Slow',     icon: '🐌', desc: (s) => `Lose ${0.5*s} Energy every 10 steps.`,      value: (s) => 0.5*s },
+                { id: 'rapid_leak',    cat: 'tempo_loss',     type: 'bane', name: 'Rapid',    icon: '🌪️', desc: (s) => `Lose ${0.5*s} Energy every 3 steps.`,       value: (s) => 0.5*s },
                 // Static — yield reduction
-                { id: 'diminish',      cat: 'yield_reduce',   type: 'bane', name: 'Conduit',  icon: '🔻', desc: (s) => `Power Nodes give -${0.5*s} Energy (rounded down).` },
-                { id: 'first_static',  cat: 'yield_reduce',   type: 'bane', name: 'Surge',    icon: '🌫️', desc: (s) => `First Power Node per Floor gives -${s} Energy.` },
-                { id: 'tax_static',    cat: 'yield_reduce',   type: 'bane', name: 'Reserve',  icon: '📉', desc: (s) => `Each Power consumed reduces Max Energy by ${s} (permanent).` }
+                { id: 'diminish',      cat: 'yield_reduce',   type: 'bane', name: 'Conduit',  icon: '🔻', desc: (s) => `Power Nodes give -${0.5*s} Energy.`,        value: (s) => 0.5*s },
+                { id: 'first_static',  cat: 'yield_reduce',   type: 'bane', name: 'Surge',    icon: '🌫️', desc: (s) => `First Power Node per Floor gives -${0.5*s} Energy.`, value: (s) => 0.5*s },
+                { id: 'tax_static',    cat: 'yield_reduce',   type: 'bane', name: 'Reserve',  icon: '📉', desc: (s) => `Each Power consumed reduces Max Energy by ${0.5*s} (permanent).`, value: (s) => 0.5*s }
             ];
 
             const ALL_REWARDS = [...BOONS, ...BANES];
@@ -1204,66 +1224,77 @@
             // Dynamic Calculations
             const stk = (id) => G.rewards[id] || 0;
 
+            function fmtEnergy(v) {
+                if (v === undefined || v === null) return v;
+                if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+                return (Math.round(v * 10) / 10).toString();
+            }
+            function fmtSigned(v) {
+                if (v === 0) return '0';
+                const sign = v > 0 ? '+' : '';
+                return sign + fmtEnergy(v);
+            }
+
             function getMaxEnergy() {
                 let m = CONFIG.energy.start;
                 m += stk('max_energy') * 2;
-                m -= stk('corroded');
+                m -= stk('corroded') * 0.5;
                 m += G.permanentMaxBonus;
                 return Math.max(1, m);
             }
             function getEffectiveCap() {
-                return Math.max(1, getMaxEnergy() + stk('overflow_cap') - stk('cap_drain'));
+                return Math.max(1, getMaxEnergy() + stk('overflow_cap') * 0.5 - stk('cap_drain') * 0.5);
             }
             function getHeavyCost() {
                 let c = CONFIG.energy.heavy;
-                c -= stk('heavy_damp');
-                c += stk('dense');
-                return Math.max(1, c);
+                c -= stk('heavy_damp') * 0.5;
+                c += stk('dense') * 0.5;
+                return Math.max(0.5, c);
             }
             function getCrackedCost() {
                 let c = CONFIG.energy.cracked;
-                c -= stk('crack_pad');
-                c += stk('crack_decay');
+                c -= stk('crack_pad') * 0.5;
+                c += stk('crack_decay') * 0.5;
                 return Math.max(0, c);
             }
             function getPowerGain(isFirstPower) {
                 let p = CONFIG.energy.powerGain;
                 if ((G.relicStacks.surge || 0) > 0) p += 3;
-                p += stk('power_surge');
-                p -= Math.floor(stk('diminish') * 0.5);
+                p += stk('power_surge') * 0.5;
+                p -= stk('diminish') * 0.5;
                 if (isFirstPower) {
                     p += stk('first_surge') * 2;
-                    p -= stk('first_static');
+                    p -= stk('first_static') * 0.5;
                 }
                 return Math.max(0, p);
             }
             function getStableCost() {
-                return CONFIG.energy.stable + stk('tariff');
+                return CONFIG.energy.stable + stk('tariff') * 0.5;
             }
             function getCrackedRecycle() {
-                return Math.floor(stk('scavenge') * 0.5);
+                return stk('scavenge') * 0.5;
             }
-            function getCrackedDrain()  { return stk('crack_corrupt'); }
-            function getHeavyRecover()  { return stk('heavy_recover'); }
-            function getHeavyDrain()    { return stk('heavy_corrupt'); }
-            function getExitBonus()     { return stk('exit_bonus') + (G.level < 3 ? 3 : 0); }
-            function getExitDrain()     { return stk('exit_corrupt'); }
-            function getLevelStartBonus() { return stk('level_bonus'); }
-            function getLevelStartDrain() { return stk('level_drain'); }
+            function getCrackedDrain()  { return stk('crack_corrupt') * 0.5; }
+            function getHeavyRecover()  { return stk('heavy_recover') * 0.5; }
+            function getHeavyDrain()    { return stk('heavy_corrupt') * 0.5; }
+            function getExitBonus()     { return stk('exit_bonus') * 0.5 + (G.level < 3 ? 3 : 0); }
+            function getExitDrain()     { return stk('exit_corrupt') * 0.5; }
+            function getLevelStartBonus() { return stk('level_bonus') * 0.5; }
+            function getLevelStartDrain() { return stk('level_drain') * 0.5; }
 
             function applyStepCostMods(cost, stepN) {
-                if (stk('firm_grip') && stepN % 10 === 0) cost = Math.max(0, cost - stk('firm_grip'));
+                if (stk('firm_grip') && stepN % 10 === 0) cost = Math.max(0, cost - stk('firm_grip') * 0.5);
                 return cost;
             }
 
             function getStepEnergyDelta(stepN) {
                 let d = 0;
-                if (stk('momentum') && stepN % 10 === 0) d += stk('momentum');
-                if (stk('tempo_5')  && stepN % 5  === 0) d += stk('tempo_5');
-                if (stk('tempo_3')  && stepN % 3  === 0) d += stk('tempo_3');
-                if (stk('slow_leak')&& stepN % 10 === 0) d -= stk('slow_leak');
-                if (stk('leak')     && stepN % 5  === 0) d -= stk('leak');
-                if (stk('rapid_leak')&&stepN % 3  === 0) d -= stk('rapid_leak');
+                if (stk('momentum')   && stepN % 10 === 0) d += stk('momentum')   * 0.5;
+                if (stk('tempo_5')    && stepN % 5  === 0) d += stk('tempo_5')    * 0.5;
+                if (stk('tempo_3')    && stepN % 3  === 0) d += stk('tempo_3')    * 0.5;
+                if (stk('slow_leak')  && stepN % 10 === 0) d -= stk('slow_leak')  * 0.5;
+                if (stk('leak')       && stepN % 5  === 0) d -= stk('leak')       * 0.5;
+                if (stk('rapid_leak') && stepN % 3  === 0) d -= stk('rapid_leak') * 0.5;
                 return d;
             }
 
@@ -1296,10 +1327,10 @@
             function render() {
                 els.grid.innerHTML = '';
                 els.level.textContent = G.level + 1;
-                els.energy.textContent = G.energy;
-                
+                els.energy.textContent = fmtEnergy(G.energy);
+
                 let currentCap = getEffectiveCap();
-                els.maxEnergy.textContent = currentCap;
+                els.maxEnergy.textContent = fmtEnergy(currentCap);
 
                 if (G.energy <= Math.max(3, currentCap * 0.2)) { els.energy.classList.add('critical'); }
                 else { els.energy.classList.remove('critical'); }
@@ -1504,8 +1535,8 @@
                     const gain = getPowerGain(isFirst);
                     G.energy += gain;
                     G.firstPowerThisLevel = true;
-                    G.permanentMaxBonus += stk('charged_reserve');
-                    G.permanentMaxBonus -= stk('tax_static');
+                    G.permanentMaxBonus += stk('charged_reserve') * 0.5;
+                    G.permanentMaxBonus -= stk('tax_static') * 0.5;
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
                     logMsg = `Power node: +${gain} Energy.`;
                 } else if (clickedTileVal === TILE_TYPES.RELIC) {
@@ -1718,9 +1749,15 @@
                 renderStats();
             }
 
+            function refreshShopUI() {
+                if (els.overlay.style.display === 'flex' && els.overlayTitle.textContent === 'MARKETPLACE') {
+                    showShop();
+                }
+            }
+
             function showShop() {
                 els.overlayTitle.textContent = "MARKETPLACE";
-                els.overlayDesc.textContent = "Choose a service:";
+                els.overlayDesc.textContent = `Pick any number of services. Energy: ${fmtEnergy(G.energy)}.`;
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'none';
 
@@ -1730,7 +1767,7 @@
                     const btn = document.createElement('div');
                     btn.className = 'reward-button';
                     let html = `<div class="reward-title">${title}</div>`;
-                    html += `<div class="boon-text">Cost: ${costEnergy} Energy</div>`;
+                    html += `<div class="boon-text">Cost: ${fmtEnergy(costEnergy)} Energy</div>`;
                     if (subtext) html += `<div class="bane-text">${subtext}</div>`;
                     btn.innerHTML = html;
                     if (!enabled) btn.style.opacity = '0.45';
@@ -1766,12 +1803,12 @@
                 flashEnergy('loss');
                 const boon = BOONS[Math.floor(rng() * BOONS.length)];
                 G.rewards[boon.id] = (G.rewards[boon.id] || 0) + 1;
-                els.overlay.style.display = 'none';
                 updateLog(`SHOP: gained ${fullRewardName(boon)}.`);
                 render();
                 renderActiveRewards();
                 renderActiveRelics();
                 renderStats();
+                refreshShopUI();
             }
 
             function purchaseRandomRelic() {
@@ -1780,43 +1817,86 @@
                 flashEnergy('loss');
                 const t = pickRandomRelicId();
                 G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
-                els.overlay.style.display = 'none';
                 const def = RELIC_DEFS.find(d => d.id === t);
                 updateLog(`SHOP: gained ${def ? def.name : t} relic.`);
                 render();
                 renderActiveRewards();
                 renderActiveRelics();
                 renderStats();
+                refreshShopUI();
             }
 
             function showRemoveStacksMenu() {
                 els.overlayTitle.textContent = "REMOVE STACKS";
-                els.overlayDesc.textContent = "Pick a Boon or Bane. 2 stacks will be removed (or all if only 1).";
+                els.overlayDesc.textContent = `Pick a Boon (left) or Bane (right). 2 stacks removed per click. Energy: ${fmtEnergy(G.energy)}.`;
                 els.choices.innerHTML = '';
-                for (const [id, count] of Object.entries(G.rewards)) {
-                    if (count <= 0) continue;
+
+                const grid = document.createElement('div');
+                grid.className = 'remove-stacks-grid';
+                const boonCol = document.createElement('div');
+                boonCol.className = 'remove-stacks-col';
+                const baneCol = document.createElement('div');
+                baneCol.className = 'remove-stacks-col';
+                grid.appendChild(boonCol);
+                grid.appendChild(baneCol);
+
+                const entries = Object.entries(G.rewards).filter(([, c]) => c > 0);
+                entries.sort((a, b) => {
+                    const ra = ALL_REWARDS.find(x => x.id === a[0]);
+                    const rb = ALL_REWARDS.find(x => x.id === b[0]);
+                    return (ra?.name || '').localeCompare(rb?.name || '');
+                });
+
+                for (const [id, count] of entries) {
                     const r = ALL_REWARDS.find(x => x.id === id);
                     if (!r) continue;
                     const btn = document.createElement('div');
-                    btn.className = 'reward-button';
-                    btn.innerHTML = `<div class="reward-title">${r.icon} ${fullRewardName(r)} (×${count})</div>`;
-                    btn.addEventListener('click', () => {
+                    btn.className = `reward-button remove-stack-button ${r.type === 'boon' ? 'is-boon' : 'is-bane'}`;
+                    btn.innerHTML = `<div class="reward-title">${r.icon} ${fullRewardName(r)} <span class="boon-text">(×${count})</span></div>`;
+                    btn.addEventListener('mouseenter', (e) => {
+                        setTooltip(fullRewardName(r), r.desc(1), rewardTooltipOpts(r, count));
+                        els.tooltip.style.display = 'block';
+                        updateTooltipPosition(e);
+                    });
+                    btn.addEventListener('mousemove', updateTooltipPosition);
+                    btn.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
+                    if (G.energy < 2) btn.style.opacity = '0.45';
+                    else btn.addEventListener('click', () => {
                         G.energy -= 2;
                         flashEnergy('loss');
                         G.rewards[id] = Math.max(0, count - 2);
                         if (G.rewards[id] === 0) delete G.rewards[id];
-                        els.overlay.style.display = 'none';
                         updateLog(`SHOP: -2 stacks of ${fullRewardName(r)}.`);
                         render();
                         renderActiveRewards();
                         renderActiveRelics();
                         renderStats();
+                        els.tooltip.style.display = 'none';
+                        const stillAny = Object.values(G.rewards).some(c => c > 0);
+                        if (!stillAny) showShop();
+                        else showRemoveStacksMenu();
                     });
-                    els.choices.appendChild(btn);
+                    (r.type === 'boon' ? boonCol : baneCol).appendChild(btn);
                 }
+
+                if (boonCol.children.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'remove-stacks-empty';
+                    empty.textContent = 'No Boons.';
+                    boonCol.appendChild(empty);
+                }
+                if (baneCol.children.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'remove-stacks-empty';
+                    empty.textContent = 'No Banes.';
+                    baneCol.appendChild(empty);
+                }
+
+                els.choices.appendChild(grid);
+
                 const back = document.createElement('div');
                 back.className = 'reward-button';
-                back.innerHTML = `<div class="reward-title">← Back</div>`;
+                back.innerHTML = `<div class="reward-title">← Back to Marketplace</div>`;
                 back.addEventListener('click', showShop);
                 els.choices.appendChild(back);
             }
@@ -1920,10 +2000,22 @@
                     .replace(/\n/g, '<br>');
             }
 
-            function setTooltip(title, body) {
+            function setTooltip(title, body, opts) {
+                opts = opts || {};
                 let html = `<span class="tt-title">${highlight(title)}</span>`;
                 if (body) html += `<span class="tt-desc">${highlight(body)}</span>`;
+                if (opts.totalHtml) html += `<span class="tt-desc">${opts.totalHtml}</span>`;
                 els.tooltip.innerHTML = html;
+            }
+
+            function rewardTooltipOpts(rInfo, count) {
+                if (typeof rInfo.value !== 'function' || count <= 0) return {};
+                const total = rInfo.value(count);
+                const cls = rInfo.type === 'boon' ? 'delta-pos' : 'delta-neg';
+                const sign = rInfo.type === 'boon' ? '+' : '-';
+                return {
+                    totalHtml: `Total at ×${count}: <span class="${cls}">(${sign}${fmtEnergy(total)})</span>`
+                };
             }
 
             function flipAllTiles(success, callback) {
@@ -1956,7 +2048,7 @@
                 if (!tile) return;
                 const ft = document.createElement('div');
                 ft.className = `float-text ${amount > 0 ? 'gain' : 'loss'}`;
-                ft.textContent = (amount > 0 ? '+' : '') + amount;
+                ft.textContent = fmtSigned(amount);
                 tile.appendChild(ft);
                 setTimeout(() => { if (ft.parentNode) ft.parentNode.removeChild(ft); }, 1050);
             }
@@ -2182,7 +2274,7 @@
                     }
 
                     div.addEventListener('mouseenter', (e) => {
-                        setTooltip(fullRewardName(rInfo), rInfo.desc(count));
+                        setTooltip(fullRewardName(rInfo), rInfo.desc(1), rewardTooltipOpts(rInfo, count));
                         els.tooltip.style.display = 'block';
                         updateTooltipPosition(e);
                     });
@@ -2194,24 +2286,22 @@
             }
 
             function signedDelta(n) {
-                if (n === 0) return null;
+                if (Math.abs(n) < 1e-9) return null;
                 const cls = n > 0 ? 'delta-pos' : 'delta-neg';
-                const sign = n > 0 ? '+' : '';
-                return `<span class="${cls}">${sign}${n}</span>`;
+                return `<span class="${cls}">${fmtSigned(n)}</span>`;
             }
 
             function statsRow(label, base, current) {
                 const delta = current - base;
                 const deltaTxt = signedDelta(delta);
-                const valueCol = deltaTxt ? `${base} → ${current} (${deltaTxt})` : `${current}`;
+                const valueCol = deltaTxt ? `${fmtEnergy(base)} → ${fmtEnergy(current)} (${deltaTxt})` : `${fmtEnergy(current)}`;
                 return `<div class="stats-row"><span>${label}</span><span>${valueCol}</span></div>`;
             }
 
             function statsLine(label, value) {
-                if (value === 0) return '';
+                if (Math.abs(value) < 1e-9) return '';
                 const cls = value > 0 ? 'delta-pos' : 'delta-neg';
-                const sign = value > 0 ? '+' : '';
-                return `<div class="stats-row"><span>${label}</span><span class="${cls}">${sign}${value}</span></div>`;
+                return `<div class="stats-row"><span>${label}</span><span class="${cls}">${fmtSigned(value)}</span></div>`;
             }
 
             function renderStats() {
@@ -2392,8 +2482,8 @@
                     const reward = ALL_REWARDS.find(r => r.id === row.dataset.reward);
                     if (!reward) return;
                     row.addEventListener('mouseenter', (e) => {
-                        const stacks = Math.max(1, stk(reward.id));
-                        setTooltip(fullRewardName(reward), reward.desc(stacks));
+                        const stacks = stk(reward.id);
+                        setTooltip(fullRewardName(reward), reward.desc(1), rewardTooltipOpts(reward, stacks));
                         els.tooltip.style.display = 'block';
                         updateTooltipPosition(e);
                     });
@@ -2524,12 +2614,20 @@
             const RARITY_CONFIG = {
                 common:   { boons: 1, banes: 1 },
                 uncommon: { boons: 2, banes: 1 },
-                rare:     { boons: 3, banes: 2 }
+                rare:     { boons: 3, banes: 2 },
+                epic:     { boons: 4, banes: 0 }
             };
 
             function rollRarity(floor) {
-                const allowRare = floor >= 5; // Rare unlocked after Floor 5 (i.e., floors 6+).
+                const allowRare = floor >= 5;  // Floor 6+
+                const allowEpic = floor >= 10; // Floor 11+
                 const r = rng();
+                if (allowEpic) {
+                    if (r < 0.05) return 'epic';
+                    if (r < 0.20) return 'rare';
+                    if (r < 0.50) return 'uncommon';
+                    return 'common';
+                }
                 if (allowRare) {
                     if (r < 0.10) return 'rare';
                     if (r < 0.40) return 'uncommon';
@@ -2572,7 +2670,7 @@
                 const usedBoons = new Set();
                 const usedBanes = new Set();
                 const options = [];
-                const rarityOrder = ['rare', 'uncommon', 'common'];
+                const rarityOrder = ['epic', 'rare', 'uncommon', 'common'];
                 let safety = 30;
                 while (options.length < 3 && safety-- > 0) {
                     let rarity = rollRarity(G.level);
@@ -2592,8 +2690,7 @@
                     const btn = document.createElement('div');
                     btn.className = `reward-button rarity-${opt.rarity}`;
 
-                    let html = `<div class="reward-rarity-tag rarity-${opt.rarity}">${opt.rarity}</div>`;
-                    html += `<div class="reward-title">Subroutine Package</div>`;
+                    let html = `<div class="reward-title">Subroutine Package</div>`;
                     opt.boons.forEach(b => html += `<div class="boon-text">+ ${fullRewardName(b)}: ${b.desc(1)}</div>`);
                     opt.banes.forEach(b => html += `<div class="bane-text">- ${fullRewardName(b)}: ${b.desc(1)}</div>`);
 
