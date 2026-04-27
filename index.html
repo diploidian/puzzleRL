@@ -250,12 +250,27 @@
 
         #active-relics {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-            align-items: center;
-            min-width: 60px;
+            flex-direction: row;
+            gap: 6px;
+            justify-content: center;
+            align-items: flex-start;
+            width: 180px;
+            flex-shrink: 0;
         }
-        #active-relics:empty { min-width: 0; }
+        .relic-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 54px;
+        }
+        .relic-col-label {
+            font-size: 0.55rem;
+            color: #6b7280;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
 
         #rewards-section {
             width: 100%;
@@ -290,6 +305,7 @@
             flex-wrap: wrap;
             justify-content: center;
             width: 100%;
+            min-height: 60px;
         }
         #active-rewards .boon-bane-divider {
             width: 1px;
@@ -300,7 +316,7 @@
 
         @media (max-width: 600px) {
             #game-body { flex-direction: column; }
-            #active-relics { flex-direction: row; min-width: 0; }
+            #active-relics { width: 100%; }
         }
 
         .reward-icon-container.armed {
@@ -442,7 +458,7 @@
 
         .reward-button {
             background: #0d1117;
-            border: 1px solid #30363d;
+            border: 2px solid #30363d;
             border-radius: 6px;
             padding: 16px;
             margin: 12px 0;
@@ -453,10 +469,23 @@
             flex-direction: column;
             gap: 6px;
         }
+        .reward-button.rarity-common   { border-color: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.25); }
+        .reward-button.rarity-uncommon { border-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.35); }
+        .reward-button.rarity-rare     { border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); }
+
+        .reward-rarity-tag {
+            font-size: 0.7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .reward-rarity-tag.rarity-common   { color: #ffffff; }
+        .reward-rarity-tag.rarity-uncommon { color: #22c55e; }
+        .reward-rarity-tag.rarity-rare     { color: #3b82f6; }
 
         .reward-button:hover {
             background: #1f2937;
-            border-color: var(--text-color);
             transform: translateY(-2px);
         }
 
@@ -1977,13 +2006,19 @@
             }
 
             const RELIC_DEFS = [
-                { id: 'efficiency',  icon: '💎', name: 'Efficiency',  activatable: false, cls: 'relic-efficiency' },
-                { id: 'jump',        icon: '🦘', name: 'Jump',        activatable: true,  cls: 'relic-jump' },
-                { id: 'shuffle',     icon: '🔀', name: 'Shuffle',     activatable: true,  cls: 'relic-shuffle' },
-                { id: 'mend',        icon: '🩹', name: 'Mend',        activatable: true,  cls: 'relic-mend' },
-                { id: 'crystallize', icon: '🔮', name: 'Crystallize', activatable: true,  cls: 'relic-crystallize' },
-                { id: 'invert',      icon: '🔃', name: 'Invert',      activatable: true,  cls: 'relic-invert' },
-                { id: 'surge',       icon: '🔆', name: 'Surge',       activatable: false, cls: 'relic-surge' }
+                { id: 'surge',       tier: 'unique',  icon: '🔆', name: 'Surge',       activatable: false, cls: 'relic-surge' },
+                { id: 'efficiency',  tier: 'passive', icon: '🎯', name: 'Efficiency',  activatable: false, cls: 'relic-efficiency' },
+                { id: 'jump',        tier: 'active',  icon: '🦘', name: 'Jump',        activatable: true,  cls: 'relic-jump' },
+                { id: 'shuffle',     tier: 'active',  icon: '🔀', name: 'Shuffle',     activatable: true,  cls: 'relic-shuffle' },
+                { id: 'mend',        tier: 'active',  icon: '🩹', name: 'Mend',        activatable: true,  cls: 'relic-mend' },
+                { id: 'crystallize', tier: 'active',  icon: '🔮', name: 'Crystallize', activatable: true,  cls: 'relic-crystallize' },
+                { id: 'invert',      tier: 'active',  icon: '🔃', name: 'Invert',      activatable: true,  cls: 'relic-invert' }
+            ];
+
+            const RELIC_TIERS = [
+                { key: 'unique',  label: 'Unique'  },
+                { key: 'passive', label: 'Passive' },
+                { key: 'active',  label: 'Active'  }
             ];
 
             // Weighted random relic pool used by relic-tile pickups and shop purchases.
@@ -2058,30 +2093,45 @@
 
             function renderActiveRelics() {
                 els.activeRelics.innerHTML = '';
-                RELIC_DEFS.forEach(def => {
-                    const count = G.relicStacks[def.id] || 0;
-                    if (count <= 0) return;
-                    const div = document.createElement('div');
-                    div.className = `reward-icon-container ${def.cls}`;
-                    if (G.activeAbility === def.id) div.classList.add('armed');
-                    div.textContent = def.icon;
-                    const sub = document.createElement('span');
-                    sub.className = 'stack-count';
-                    sub.textContent = count;
-                    div.appendChild(sub);
-                    div.dataset.relicId = def.id;
-                    div.addEventListener('mouseenter', (e) => {
-                        const tt = relicTooltip(def.id);
-                        setTooltip(tt.title, tt.body);
-                        els.tooltip.style.display = 'block';
-                        updateTooltipPosition(e);
+                RELIC_TIERS.forEach(tier => {
+                    const col = document.createElement('div');
+                    col.className = 'relic-col';
+                    col.dataset.tier = tier.key;
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'relic-col-label';
+                    lbl.textContent = tier.label;
+                    col.appendChild(lbl);
+
+                    RELIC_DEFS.filter(d => d.tier === tier.key).forEach(def => {
+                        const count = G.relicStacks[def.id] || 0;
+                        if (count <= 0) return;
+                        const div = document.createElement('div');
+                        div.className = `reward-icon-container ${def.cls}`;
+                        if (G.activeAbility === def.id) div.classList.add('armed');
+                        div.textContent = def.icon;
+                        if (def.tier !== 'unique') {
+                            const sub = document.createElement('span');
+                            sub.className = 'stack-count';
+                            sub.textContent = count;
+                            div.appendChild(sub);
+                        }
+                        div.dataset.relicId = def.id;
+                        div.addEventListener('mouseenter', (e) => {
+                            const tt = relicTooltip(def.id);
+                            setTooltip(tt.title, tt.body);
+                            els.tooltip.style.display = 'block';
+                            updateTooltipPosition(e);
+                        });
+                        div.addEventListener('mousemove', updateTooltipPosition);
+                        div.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
+                        if (def.activatable) {
+                            div.addEventListener('click', () => activateRelic(def.id));
+                        }
+                        col.appendChild(div);
                     });
-                    div.addEventListener('mousemove', updateTooltipPosition);
-                    div.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
-                    if (def.activatable) {
-                        div.addEventListener('click', () => activateRelic(def.id));
-                    }
-                    els.activeRelics.appendChild(div);
+
+                    els.activeRelics.appendChild(col);
                 });
             }
 
@@ -2198,13 +2248,14 @@
                 if (tempo) html += `<div class="stats-section-title">PERIODIC</div>${tempo}`;
 
                 let relicHtml = '';
-                if ((G.relicStacks.efficiency || 0) > 0)  relicHtml += `<div class="stats-row"><span>💎 Efficiency</span><span class="delta-pos">×${G.relicStacks.efficiency}</span></div>`;
-                if ((G.relicStacks.jump || 0) > 0)        relicHtml += `<div class="stats-row"><span>🦘 Jump</span><span class="delta-pos">×${G.relicStacks.jump}</span></div>`;
-                if ((G.relicStacks.shuffle || 0) > 0)     relicHtml += `<div class="stats-row"><span>🔀 Shuffle</span><span class="delta-pos">×${G.relicStacks.shuffle}</span></div>`;
-                if ((G.relicStacks.mend || 0) > 0)        relicHtml += `<div class="stats-row"><span>🩹 Mend</span><span class="delta-pos">×${G.relicStacks.mend}</span></div>`;
-                if ((G.relicStacks.crystallize || 0) > 0) relicHtml += `<div class="stats-row"><span>🔮 Crystallize</span><span class="delta-pos">×${G.relicStacks.crystallize}</span></div>`;
-                if ((G.relicStacks.invert || 0) > 0)      relicHtml += `<div class="stats-row"><span>🔃 Invert</span><span class="delta-pos">×${G.relicStacks.invert}</span></div>`;
-                if ((G.relicStacks.surge || 0) > 0)       relicHtml += `<div class="stats-row"><span>🔆 Surge</span><span class="delta-pos">+3 base Power</span></div>`;
+                RELIC_DEFS.forEach(def => {
+                    const count = G.relicStacks[def.id] || 0;
+                    if (count <= 0) return;
+                    let valueHtml;
+                    if (def.id === 'surge') valueHtml = '<span class="delta-pos">+3 base Power</span>';
+                    else                    valueHtml = `<span class="delta-pos">×${count}</span>`;
+                    relicHtml += `<div class="stats-row"><span>${def.icon} ${def.name}</span>${valueHtml}</div>`;
+                });
                 const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
                 if (efficiencyTrigger > 0) {
                     const payout = maxBoonStacks();
@@ -2470,6 +2521,46 @@
                 return a;
             }
 
+            const RARITY_CONFIG = {
+                common:   { boons: 1, banes: 1 },
+                uncommon: { boons: 2, banes: 1 },
+                rare:     { boons: 3, banes: 2 }
+            };
+
+            function rollRarity(floor) {
+                const allowRare = floor >= 5; // Rare unlocked after Floor 5 (i.e., floors 6+).
+                const r = rng();
+                if (allowRare) {
+                    if (r < 0.10) return 'rare';
+                    if (r < 0.40) return 'uncommon';
+                    return 'common';
+                }
+                if (r < 0.30) return 'uncommon';
+                return 'common';
+            }
+
+            function buildRewardOption(rarity, shuffledBoons, shuffledBanes, usedBoons, usedBanes) {
+                const cfg = RARITY_CONFIG[rarity];
+                const boons = [];
+                for (const b of shuffledBoons) {
+                    if (boons.length >= cfg.boons) break;
+                    if (usedBoons.has(b.id)) continue;
+                    boons.push(b);
+                }
+                if (boons.length < cfg.boons) return null;
+                const banes = [];
+                for (const b of shuffledBanes) {
+                    if (banes.length >= cfg.banes) break;
+                    if (usedBanes.has(b.id)) continue;
+                    if (boons.some(boon => CONFLICTS[boon.id] === b.id)) continue;
+                    banes.push(b);
+                }
+                if (banes.length < cfg.banes) return null;
+                boons.forEach(b => usedBoons.add(b.id));
+                banes.forEach(b => usedBanes.add(b.id));
+                return { rarity, boons, banes };
+            }
+
             function showRewards() {
                 els.overlayTitle.textContent = "SYSTEM STABLE";
                 els.overlayDesc.textContent = "Select a subroutine package for the next floor:";
@@ -2481,26 +2572,28 @@
                 const usedBoons = new Set();
                 const usedBanes = new Set();
                 const options = [];
-
-                for (const boon of shuffledBoons) {
-                    if (options.length >= 3) break;
-                    if (usedBoons.has(boon.id)) continue;
-                    for (const bane of shuffledBanes) {
-                        if (usedBanes.has(bane.id)) continue;
-                        if (CONFLICTS[boon.id] === bane.id) continue;
-                        const title = `${CATEGORY_PREFIX[boon.cat]} ${CATEGORY_SUFFIX[bane.cat]}`;
-                        options.push({ title, boons: [boon], banes: [bane] });
-                        usedBoons.add(boon.id);
-                        usedBanes.add(bane.id);
-                        break;
+                const rarityOrder = ['rare', 'uncommon', 'common'];
+                let safety = 30;
+                while (options.length < 3 && safety-- > 0) {
+                    let rarity = rollRarity(G.level);
+                    let opt = buildRewardOption(rarity, shuffledBoons, shuffledBanes, usedBoons, usedBanes);
+                    if (!opt) {
+                        for (const fallback of rarityOrder) {
+                            if (fallback === rarity) continue;
+                            opt = buildRewardOption(fallback, shuffledBoons, shuffledBanes, usedBoons, usedBanes);
+                            if (opt) break;
+                        }
                     }
+                    if (opt) options.push(opt);
+                    else break;
                 }
 
                 options.forEach(opt => {
                     const btn = document.createElement('div');
-                    btn.className = 'reward-button';
+                    btn.className = `reward-button rarity-${opt.rarity}`;
 
-                    let html = `<div class="reward-title">${opt.title}</div>`;
+                    let html = `<div class="reward-rarity-tag rarity-${opt.rarity}">${opt.rarity}</div>`;
+                    html += `<div class="reward-title">Subroutine Package</div>`;
                     opt.boons.forEach(b => html += `<div class="boon-text">+ ${fullRewardName(b)}: ${b.desc(1)}</div>`);
                     opt.banes.forEach(b => html += `<div class="bane-text">- ${fullRewardName(b)}: ${b.desc(1)}</div>`);
 
