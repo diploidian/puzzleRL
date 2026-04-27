@@ -137,6 +137,16 @@
             outline: 2px dashed #facc15;
             outline-offset: -3px;
         }
+        .tile.mend-target {
+            outline: 2px dashed #22d3ee;
+            outline-offset: -3px;
+            opacity: 1 !important;
+            cursor: pointer !important;
+        }
+        .tile.crystallize-target {
+            outline: 2px dashed #ec4899;
+            outline-offset: -3px;
+        }
 
         .tile-icon {
             font-size: 1.4rem;
@@ -300,6 +310,10 @@
         .reward-icon-container.relic-efficiency { border-color: #a855f7; box-shadow: 0 0 5px rgba(168, 85, 247, 0.3); }
         .reward-icon-container.relic-jump      { border-color: #facc15; box-shadow: 0 0 5px rgba(250, 204, 21, 0.3); cursor: pointer; }
         .reward-icon-container.relic-shuffle   { border-color: #fb7185; box-shadow: 0 0 5px rgba(251, 113, 133, 0.3); cursor: pointer; }
+        .reward-icon-container.relic-mend        { border-color: #22d3ee; box-shadow: 0 0 5px rgba(34, 211, 238, 0.3); cursor: pointer; }
+        .reward-icon-container.relic-crystallize { border-color: #ec4899; box-shadow: 0 0 5px rgba(236, 72, 153, 0.3); cursor: pointer; }
+        .reward-icon-container.relic-invert      { border-color: #f97316; box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); cursor: pointer; }
+        .reward-icon-container.relic-surge       { border-color: #84cc16; box-shadow: 0 0 5px rgba(132, 204, 22, 0.3); }
 
         .reward-icon-container {
             position: relative;
@@ -1122,7 +1136,7 @@
                 isGameOver: false,
                 steps: 0,
                 rewards: {},
-                relicStacks: { efficiency: 0, jump: 0, shuffle: 0 },
+                relicStacks: { efficiency: 0, jump: 0, shuffle: 0, mend: 0, crystallize: 0, invert: 0, surge: 0 },
                 minMovesThisLevel: 0,
                 firstPowerThisLevel: false,
                 permanentMaxBonus: 0,
@@ -1185,6 +1199,7 @@
             }
             function getPowerGain(isFirstPower) {
                 let p = CONFIG.energy.powerGain;
+                if ((G.relicStacks.surge || 0) > 0) p += 3;
                 p += stk('power_surge');
                 p -= Math.floor(stk('diminish') * 0.5);
                 if (isFirstPower) {
@@ -1281,12 +1296,22 @@
                         }
 
                         if (!G.isGameOver) {
-                            const isJump = G.activeAbility === 'jump';
-                            const reachable = isJump
-                                ? isJumpTarget([r, c], G.playerPos)
-                                : isAdjacent([r, c], G.playerPos);
-                            if (reachable && tileVal !== TILE_TYPES.BROKEN) {
-                                if (isJump) div.classList.add('jump-target');
+                            const ability = G.activeAbility;
+                            let reachable, highlightCls = null;
+                            if (ability === 'mend') {
+                                reachable = (tileVal === TILE_TYPES.BROKEN);
+                                if (reachable) highlightCls = 'mend-target';
+                            } else if (ability === 'crystallize') {
+                                reachable = (tileVal === TILE_TYPES.POWER);
+                                if (reachable) highlightCls = 'crystallize-target';
+                            } else if (ability === 'jump') {
+                                reachable = isJumpTarget([r, c], G.playerPos) && tileVal !== TILE_TYPES.BROKEN;
+                                if (reachable) highlightCls = 'jump-target';
+                            } else {
+                                reachable = isAdjacent([r, c], G.playerPos) && tileVal !== TILE_TYPES.BROKEN;
+                            }
+                            if (reachable) {
+                                if (highlightCls) div.classList.add(highlightCls);
                             } else if (r === G.playerPos[0] && c === G.playerPos[1]) {
                                 // Current position
                             } else {
@@ -1345,7 +1370,7 @@
                         return { title: 'Heavy Tile', body };
                     }
                     case 'power':  return { title: 'Power Node', body: `Cost: 1 Energy to enter. Restores ${getPowerGain(!G.firstPowerThisLevel)} Energy.` };
-                    case 'relic':  return { title: 'Relic Fragment', body: 'Cost: 2 Energy. Grants +1 random Relic stack (Efficiency, Jump, or Shuffle).' };
+                    case 'relic':  return { title: 'Relic Fragment', body: 'Cost: 2 Energy. Grants +1 stack of a random Relic (weighted: common Relics more likely).' };
                     case 'shop':   return { title: 'Marketplace', body: 'Cost: 3 Energy to enter. Opens a buy menu (random boon, stack removal, random relic).' };
                     case 'broken': return { title: 'Broken Tile', body: 'Impassable.' };
                 }
@@ -1366,6 +1391,39 @@
 
             function handleTileClick(row, col) {
                 if (G.isGameOver) return;
+
+                if (G.activeAbility === 'mend') {
+                    if (G.currentGrid[row][col] !== TILE_TYPES.BROKEN) return;
+                    if (G.energy < 1) { updateLog('MEND failed: not enough Energy.'); return; }
+                    G.energy -= 1;
+                    G.currentGrid[row][col] = TILE_TYPES.STABLE;
+                    G.relicStacks.mend = Math.max(0, (G.relicStacks.mend || 0) - 1);
+                    G.activeAbility = null;
+                    flashEnergy('loss');
+                    updateLog('MEND: Broken Tile restored to Stable.');
+                    render();
+                    showFloatingText(row, col, -1);
+                    renderActiveRelics();
+                    renderStats();
+                    return;
+                }
+
+                if (G.activeAbility === 'crystallize') {
+                    if (G.currentGrid[row][col] !== TILE_TYPES.POWER) return;
+                    if (G.energy < 3) { updateLog('CRYSTALLIZE failed: not enough Energy.'); return; }
+                    G.energy -= 3;
+                    G.currentGrid[row][col] = TILE_TYPES.RELIC;
+                    G.relicStacks.crystallize = Math.max(0, (G.relicStacks.crystallize || 0) - 1);
+                    G.activeAbility = null;
+                    flashEnergy('loss');
+                    updateLog('CRYSTALLIZE: Power Node converted into a Relic Fragment.');
+                    render();
+                    showFloatingText(row, col, -3);
+                    renderActiveRelics();
+                    renderStats();
+                    return;
+                }
+
                 const isJump = (G.activeAbility === 'jump');
                 if (isJump) {
                     if (!isJumpTarget([row, col], G.playerPos)) return;
@@ -1422,12 +1480,11 @@
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
                     logMsg = `Power node: +${gain} Energy.`;
                 } else if (clickedTileVal === TILE_TYPES.RELIC) {
-                    const relicTypes = ['efficiency', 'jump', 'shuffle'];
-                    const t = relicTypes[Math.floor(rng() * 3)];
-                    G.relicStacks[t]++;
+                    const t = pickRandomRelicId();
+                    G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
-                    const relicNames = { efficiency: 'Efficiency', jump: 'Jump', shuffle: 'Shuffle' };
-                    logMsg = `Relic recovered (+1 ${relicNames[t]}).`;
+                    const relicDef = RELIC_DEFS.find(d => d.id === t);
+                    logMsg = `Relic recovered (+1 ${relicDef ? relicDef.name : t}).`;
                 } else if (clickedTileVal === TILE_TYPES.SHOP) {
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
                 } else if (clickedTileVal === TILE_TYPES.EXIT) {
@@ -1517,7 +1574,60 @@
                         return;
                     }
                     doShuffle();
+                } else if (id === 'mend') {
+                    if (G.activeAbility === 'mend') {
+                        G.activeAbility = null;
+                        updateLog('Mend disarmed.');
+                    } else if ((G.relicStacks.mend || 0) > 0) {
+                        if (G.energy < 1) {
+                            updateLog('Mend requires 1 Energy.');
+                            return;
+                        }
+                        G.activeAbility = 'mend';
+                        updateLog('Mend armed: pick a Broken Tile to restore (-1 Energy).');
+                    }
+                    render();
+                    renderActiveRelics();
+                } else if (id === 'crystallize') {
+                    if (G.activeAbility === 'crystallize') {
+                        G.activeAbility = null;
+                        updateLog('Crystallize disarmed.');
+                    } else if ((G.relicStacks.crystallize || 0) > 0) {
+                        if (G.energy < 3) {
+                            updateLog('Crystallize requires 3 Energy.');
+                            return;
+                        }
+                        G.activeAbility = 'crystallize';
+                        updateLog('Crystallize armed: pick a Power Node to convert into a Relic (-3 Energy).');
+                    }
+                    render();
+                    renderActiveRelics();
+                } else if (id === 'invert') {
+                    if ((G.relicStacks.invert || 0) <= 0) return;
+                    doInvert();
                 }
+            }
+
+            function doInvert() {
+                G.relicStacks.invert = Math.max(0, (G.relicStacks.invert || 0) - 1);
+                const data = GAME_LEVELS[G.level];
+                let swapped = 0;
+                for (let r = 0; r < data.rows; r++) {
+                    for (let c = 0; c < data.cols; c++) {
+                        const t = G.currentGrid[r][c];
+                        if (t === TILE_TYPES.CRACKED) {
+                            G.currentGrid[r][c] = TILE_TYPES.HEAVY;
+                            swapped++;
+                        } else if (t === TILE_TYPES.HEAVY) {
+                            G.currentGrid[r][c] = TILE_TYPES.CRACKED;
+                            swapped++;
+                        }
+                    }
+                }
+                updateLog(`INVERT: ${swapped} Tiles swapped (Cracked ↔ Heavy).`);
+                render();
+                renderActiveRelics();
+                renderStats();
             }
 
             function doShuffle() {
@@ -1639,12 +1749,11 @@
                 if (G.energy < 3) return;
                 G.energy -= 3;
                 flashEnergy('loss');
-                const types = ['efficiency', 'jump', 'shuffle'];
-                const t = types[Math.floor(rng() * 3)];
+                const t = pickRandomRelicId();
                 G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
                 els.overlay.style.display = 'none';
-                const names = { efficiency: 'Efficiency', jump: 'Jump', shuffle: 'Shuffle' };
-                updateLog(`SHOP: gained ${names[t]} relic.`);
+                const def = RELIC_DEFS.find(d => d.id === t);
+                updateLog(`SHOP: gained ${def ? def.name : t} relic.`);
                 render();
                 renderActiveRewards();
                 renderActiveRelics();
@@ -1868,10 +1977,37 @@
             }
 
             const RELIC_DEFS = [
-                { id: 'efficiency', icon: '💎', name: 'Efficiency', activatable: false, cls: 'relic-efficiency' },
-                { id: 'jump',       icon: '🦘', name: 'Jump',       activatable: true,  cls: 'relic-jump' },
-                { id: 'shuffle',    icon: '🔀', name: 'Shuffle',    activatable: true,  cls: 'relic-shuffle' }
+                { id: 'efficiency',  icon: '💎', name: 'Efficiency',  activatable: false, cls: 'relic-efficiency' },
+                { id: 'jump',        icon: '🦘', name: 'Jump',        activatable: true,  cls: 'relic-jump' },
+                { id: 'shuffle',     icon: '🔀', name: 'Shuffle',     activatable: true,  cls: 'relic-shuffle' },
+                { id: 'mend',        icon: '🩹', name: 'Mend',        activatable: true,  cls: 'relic-mend' },
+                { id: 'crystallize', icon: '🔮', name: 'Crystallize', activatable: true,  cls: 'relic-crystallize' },
+                { id: 'invert',      icon: '🔃', name: 'Invert',      activatable: true,  cls: 'relic-invert' },
+                { id: 'surge',       icon: '🔆', name: 'Surge',       activatable: false, cls: 'relic-surge' }
             ];
+
+            // Weighted random relic pool used by relic-tile pickups and shop purchases.
+            // Surge is non-stacking: filtered out once owned.
+            const RELIC_POOL = [
+                { id: 'efficiency',  weight: 3 },
+                { id: 'jump',        weight: 3 },
+                { id: 'shuffle',     weight: 3 },
+                { id: 'mend',        weight: 3 },
+                { id: 'crystallize', weight: 1 },
+                { id: 'invert',      weight: 1 },
+                { id: 'surge',       weight: 1 }
+            ];
+
+            function pickRandomRelicId() {
+                const pool = RELIC_POOL.filter(p => !(p.id === 'surge' && (G.relicStacks.surge || 0) >= 1));
+                const total = pool.reduce((s, p) => s + p.weight, 0);
+                let roll = rng() * total;
+                for (const p of pool) {
+                    roll -= p.weight;
+                    if (roll <= 0) return p.id;
+                }
+                return pool[pool.length - 1].id;
+            }
 
             function relicTooltip(id) {
                 const count = G.relicStacks[id] || 0;
@@ -1891,6 +2027,30 @@
                     return {
                         title: `Shuffle (×${count})`,
                         body: 'Click to randomize all Tiles on the current Floor (including Exit). Costs 3 Energy + 1 stack. Can lock the player in. Disables Efficiency for this Floor.'
+                    };
+                }
+                if (id === 'mend') {
+                    return {
+                        title: `Mend (×${count})`,
+                        body: 'Click to arm. Then click any Broken Tile to convert it to a Stable Tile for 1 Energy. Consumes 1 stack.'
+                    };
+                }
+                if (id === 'crystallize') {
+                    return {
+                        title: `Crystallize (×${count})`,
+                        body: 'Click to arm. Then click any Power Node to convert it to a Relic Fragment for 3 Energy. Consumes 1 stack.'
+                    };
+                }
+                if (id === 'invert') {
+                    return {
+                        title: `Invert (×${count})`,
+                        body: 'Click to swap every Cracked Tile and Heavy Tile on the current Floor. Consumes 1 stack.'
+                    };
+                }
+                if (id === 'surge') {
+                    return {
+                        title: `Surge${count > 1 ? ` (×${count} — only 1 active)` : ''}`,
+                        body: 'Power Nodes give +3 base Energy. Does NOT stack — extra copies have no effect.'
                     };
                 }
                 return { title: '', body: '' };
@@ -2038,9 +2198,13 @@
                 if (tempo) html += `<div class="stats-section-title">PERIODIC</div>${tempo}`;
 
                 let relicHtml = '';
-                if ((G.relicStacks.efficiency || 0) > 0) relicHtml += `<div class="stats-row"><span>💎 Efficiency</span><span class="delta-pos">×${G.relicStacks.efficiency}</span></div>`;
-                if ((G.relicStacks.jump || 0) > 0)       relicHtml += `<div class="stats-row"><span>🦘 Jump</span><span class="delta-pos">×${G.relicStacks.jump}</span></div>`;
-                if ((G.relicStacks.shuffle || 0) > 0)    relicHtml += `<div class="stats-row"><span>🔀 Shuffle</span><span class="delta-pos">×${G.relicStacks.shuffle}</span></div>`;
+                if ((G.relicStacks.efficiency || 0) > 0)  relicHtml += `<div class="stats-row"><span>💎 Efficiency</span><span class="delta-pos">×${G.relicStacks.efficiency}</span></div>`;
+                if ((G.relicStacks.jump || 0) > 0)        relicHtml += `<div class="stats-row"><span>🦘 Jump</span><span class="delta-pos">×${G.relicStacks.jump}</span></div>`;
+                if ((G.relicStacks.shuffle || 0) > 0)     relicHtml += `<div class="stats-row"><span>🔀 Shuffle</span><span class="delta-pos">×${G.relicStacks.shuffle}</span></div>`;
+                if ((G.relicStacks.mend || 0) > 0)        relicHtml += `<div class="stats-row"><span>🩹 Mend</span><span class="delta-pos">×${G.relicStacks.mend}</span></div>`;
+                if ((G.relicStacks.crystallize || 0) > 0) relicHtml += `<div class="stats-row"><span>🔮 Crystallize</span><span class="delta-pos">×${G.relicStacks.crystallize}</span></div>`;
+                if ((G.relicStacks.invert || 0) > 0)      relicHtml += `<div class="stats-row"><span>🔃 Invert</span><span class="delta-pos">×${G.relicStacks.invert}</span></div>`;
+                if ((G.relicStacks.surge || 0) > 0)       relicHtml += `<div class="stats-row"><span>🔆 Surge</span><span class="delta-pos">+3 base Power</span></div>`;
                 const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
                 if (efficiencyTrigger > 0) {
                     const payout = maxBoonStacks();
