@@ -29,12 +29,41 @@
             color: var(--text-color);
             font-family: var(--font-main);
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: row;
+            align-items: stretch;
             height: 100vh;
             margin: 0;
             overflow: hidden;
             user-select: none;
+        }
+
+        #log-pane {
+            width: 20%;
+            flex-shrink: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            box-sizing: border-box;
+            border-right: 1px dashed #30363d;
+            color: #6b7280;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            scrollbar-width: thin;
+            scrollbar-color: #30363d transparent;
+        }
+        #log-pane::-webkit-scrollbar { width: 6px; }
+        #log-pane::-webkit-scrollbar-track { background: transparent; }
+        #log-pane::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+        #game-pane {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #game-wrapper {
@@ -42,10 +71,8 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            max-height: 100vh;
-            overflow-y: auto;
+            max-width: 900px;
+            padding: 0;
         }
 
         #game-container {
@@ -64,12 +91,55 @@
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             padding-bottom: 12px;
             border-bottom: 1px dashed var(--text-color);
             font-size: 1.1rem;
             font-weight: bold;
             letter-spacing: 1px;
+        }
+
+        #efficiency-bar-container {
+            width: 100%;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            cursor: help;
+        }
+        #efficiency-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: #8b949e;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        #efficiency-bar-track {
+            position: relative;
+            height: 10px;
+            border: 1px solid #30363d;
+            border-radius: 5px;
+            background: #0d1117;
+            overflow: hidden;
+        }
+        #efficiency-bar-fill {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--text-color);
+            box-shadow: 0 0 6px rgba(88, 214, 141, 0.5) inset;
+            transition: width 0.25s ease, background-color 0.25s ease;
+        }
+        #efficiency-bar-fill.optimal {
+            background: #facc15;
+            box-shadow: 0 0 6px rgba(250, 204, 21, 0.5) inset;
+        }
+        #efficiency-bar-fill.over {
+            background: var(--danger-color);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5) inset;
         }
 
         #grid-container {
@@ -175,27 +245,6 @@
             animation: flicker 0.6s infinite;
         }
 
-        #log-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            overflow-y: auto;
-            padding: 16px 24px;
-            box-sizing: border-box;
-            z-index: 0;
-            color: #6b7280;
-            font-size: 0.72rem;
-            line-height: 1.45;
-            scrollbar-width: thin;
-            scrollbar-color: #30363d transparent;
-        }
-
-        #log-background::-webkit-scrollbar { width: 6px; }
-        #log-background::-webkit-scrollbar-track { background: transparent; }
-        #log-background::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-
         #log {
             text-align: left;
             white-space: pre-wrap;
@@ -206,39 +255,13 @@
             border-bottom: 1px dotted rgba(75, 85, 99, 0.25);
         }
         #log > div:last-child { color: #9ca3af; }
-
-        #game-wrapper { position: relative; z-index: 1; }
-        #game-container { position: relative; transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s; }
-
-        #opacity-toggle {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            background: transparent;
-            border: 1px solid #30363d;
-            color: var(--text-color);
-            font-size: 0.95rem;
-            cursor: pointer;
-            padding: 2px 8px;
-            border-radius: 4px;
-            z-index: 50;
-            pointer-events: auto;
-            transition: all 0.2s;
-            line-height: 1.4;
-        }
-        #opacity-toggle:hover { background: var(--text-color); color: var(--bg-color); }
-
-        #game-wrapper.faded { pointer-events: none; }
-        #game-wrapper.faded #opacity-toggle { pointer-events: auto; }
-        #game-wrapper.faded #game-container {
-            background-color: transparent;
-            border-color: transparent;
-            box-shadow: none;
-        }
-        #game-wrapper.faded #game-container > *:not(#opacity-toggle) {
-            opacity: 0.05;
-            transition: opacity 0.3s ease;
-        }
+        #log .kw-energy { color: #facc15; }
+        #log .kw-tile   { color: #38bdf8; }
+        #log .kw-relic  { color: #a855f7; }
+        #log .kw-floor  { color: #fb923c; }
+        #log .kw-boon   { color: var(--text-color); }
+        #log .kw-bane   { color: var(--danger-color); }
+        #log b { font-weight: 700; color: inherit; }
 
         #game-body {
             display: flex;
@@ -414,19 +437,17 @@
             line-height: 1.5;
             max-width: 280px;
         }
-        #tooltip .tt-title { display: block; font-weight: bold; color: #fff; margin-bottom: 6px; letter-spacing: 0.5px; }
+        #tooltip .tt-title { display: block; font-weight: bold; color: #fff; margin-bottom: 6px; letter-spacing: 0.5px; font-style: normal; }
         #tooltip .tt-desc  { display: block; font-style: italic; color: #c9d1d9; }
-        #tooltip .kw-energy { color: #facc15; font-style: normal; }
-        #tooltip .kw-tile   { color: #38bdf8; font-style: normal; }
-        #tooltip .kw-relic  { color: #a855f7; font-style: normal; }
-        #tooltip .kw-floor  { color: #fb923c; font-style: normal; }
-        #tooltip .kw-boon   { color: var(--text-color); font-style: normal; }
-        #tooltip .kw-bane   { color: var(--danger-color); font-style: normal; }
-        #tooltip .kw-energy b, #tooltip .kw-tile b, #tooltip .kw-relic b,
-        #tooltip .kw-floor b, #tooltip .kw-boon b, #tooltip .kw-bane b {
+        #tooltip .tt-desc .kw-energy { color: #facc15; }
+        #tooltip .tt-desc .kw-tile   { color: #38bdf8; }
+        #tooltip .tt-desc .kw-relic  { color: #a855f7; }
+        #tooltip .tt-desc .kw-floor  { color: #fb923c; }
+        #tooltip .tt-desc .kw-boon   { color: var(--text-color); }
+        #tooltip .tt-desc .kw-bane   { color: var(--danger-color); }
+        #tooltip .tt-desc b {
             color: inherit;
             font-weight: 800;
-            font-style: normal;
         }
 
         /* Overlays for UI */
@@ -770,25 +791,29 @@
 </head>
 <body>
 
-    <div id="log-background">
+    <div id="log-pane">
         <div id="log"></div>
     </div>
 
+    <div id="game-pane">
     <div id="game-wrapper">
         <div id="game-container">
-            <button id="opacity-toggle" title="Toggle UI transparency">👁</button>
             <div id="header">
                 <div>FLOOR <span id="level-display">1</span>/40</div>
                 <div>ENERGY: <span id="energy-display">15</span>/<span id="max-energy-display">15</span></div>
             </div>
 
+            <div id="efficiency-bar-container" title="Steps used vs. optimal minimum for this Floor.">
+                <div id="efficiency-bar-label">
+                    <span>EFFICIENCY</span>
+                    <span id="efficiency-bar-text">0 / 0</span>
+                </div>
+                <div id="efficiency-bar-track"><div id="efficiency-bar-fill"></div></div>
+            </div>
+
             <div id="game-body">
                 <div id="active-relics"></div>
                 <div id="grid-container"></div>
-                <div id="efficiency-bar-container" style="display: none; margin-left: 16px; flex-direction: column; align-items: center; justify-content: flex-end; height: 360px; width: 24px; background: #1f2937; border: 1px solid #4b5563; border-radius: 4px; position: relative;">
-                    <div id="efficiency-bar-fill" style="width: 100%; background: #a855f7; border-radius: 4px; transition: height 0.3s; height: 0%;"></div>
-                    <div id="efficiency-bar-text" style="position: absolute; top: -25px; color: #a855f7; font-size: 0.8rem; font-weight: bold; width: 60px; text-align: center; left: -18px;"></div>
-                </div>
                 <div id="game-body-spacer" aria-hidden="true"></div>
             </div>
 
@@ -813,6 +838,7 @@
 
             <div id="seed-bar" title="Click to copy seed">SEED: <span id="seed-display"></span></div>
         </div>
+    </div>
     </div>
 
     <!-- Modals -->
@@ -1198,6 +1224,7 @@
                 currentGrid: [],
                 isGameOver: false,
                 steps: 0,
+                persistentSteps: 0,
                 rewards: {},
                 relicStacks: { efficiency: 0, jump: 0, shuffle: 0, mend: 0, crystallize: 0, invert: 0, surge: 0 },
                 minMovesThisLevel: 0,
@@ -1228,11 +1255,12 @@
                 statsPanel: document.getElementById('stats-panel'),
                 devToggle: document.getElementById('dev-toggle'),
                 devPanel: document.getElementById('dev-panel'),
-                logBackground: document.getElementById('log-background'),
-                opacityToggle: document.getElementById('opacity-toggle'),
-                gameWrapper: document.getElementById('game-wrapper'),
+                logPane: document.getElementById('log-pane'),
                 activeRelics: document.getElementById('active-relics'),
-                rewardsSortToggle: document.getElementById('rewards-sort-toggle')
+                rewardsSortToggle: document.getElementById('rewards-sort-toggle'),
+                effBarContainer: document.getElementById('efficiency-bar-container'),
+                effBarFill: document.getElementById('efficiency-bar-fill'),
+                effBarText: document.getElementById('efficiency-bar-text')
             };
 
             // Dynamic Calculations
@@ -1328,7 +1356,7 @@
                 G.energy = Math.min(G.energy, getEffectiveCap());
                 if (levelIdx === 0) G.energy = getEffectiveCap();
 
-                G.minMovesThisLevel = computeMinMoves(data, G.energy);
+                G.minMovesThisLevel = computeMinMoves(data, G.energy, G.persistentSteps);
 
                 els.grid.style.gridTemplateColumns = `repeat(${data.cols}, 1fr)`;
                 render();
@@ -1338,24 +1366,22 @@
                 updateLog(`Entered Floor ${levelIdx + 1}.`);
             }
 
-            function render() {
-                const effTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
-                const barCont = document.getElementById('efficiency-bar-container');
-                if (effTrigger > 0 && G.minMovesThisLevel > 0) {
-                    barCont.style.display = 'flex';
-                    const pct = Math.min(100, Math.max(0, (G.steps / G.minMovesThisLevel) * 100));
-                    document.getElementById('efficiency-bar-fill').style.height = `${pct}%`;
-                    document.getElementById('efficiency-bar-text').textContent = `${G.steps}/${G.minMovesThisLevel}`;
-                    if (G.steps > G.minMovesThisLevel) {
-                        document.getElementById('efficiency-bar-fill').style.background = '#ef4444';
-                        document.getElementById('efficiency-bar-text').style.color = '#ef4444';
-                    } else {
-                        document.getElementById('efficiency-bar-fill').style.background = '#a855f7';
-                        document.getElementById('efficiency-bar-text').style.color = '#a855f7';
-                    }
-                } else {
-                    barCont.style.display = 'none';
+            function renderEfficiencyBar() {
+                const min = Math.max(0, G.minMovesThisLevel | 0);
+                const steps = G.steps | 0;
+                const denom = min > 0 ? min : 1;
+                const ratio = Math.min(1, steps / denom);
+                els.effBarFill.style.width = `${ratio * 100}%`;
+                els.effBarFill.classList.remove('over', 'optimal');
+                if (min > 0) {
+                    if (steps > min) els.effBarFill.classList.add('over');
+                    else if (steps === min) els.effBarFill.classList.add('optimal');
                 }
+                els.effBarText.textContent = min > 0 ? `${steps} / ${min}` : `${steps}`;
+            }
+
+            function render() {
+                renderEfficiencyBar();
                 els.grid.innerHTML = '';
                 els.level.textContent = G.level + 1;
                 els.energy.textContent = fmtEnergy(G.energy);
@@ -1529,7 +1555,8 @@
                 const oldEnergy = G.energy;
                 let logMsg = "";
                 G.steps++;
-                const stepN = G.steps;
+                G.persistentSteps++;
+                const stepN = G.persistentSteps;
                 const isFirstPowerThisMove = (clickedTileVal === TILE_TYPES.POWER) && !G.firstPowerThisLevel;
 
                 // 1. Base cost by tile type
@@ -1573,10 +1600,14 @@
                     logMsg = `Power node: +${gain} Energy.`;
                 } else if (clickedTileVal === TILE_TYPES.RELIC) {
                     const t = pickRandomRelicId();
-                    G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
-                    const relicDef = RELIC_DEFS.find(d => d.id === t);
-                    logMsg = `Relic recovered (+1 ${relicDef ? relicDef.name : t}).`;
+                    if (t) {
+                        G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
+                        const relicDef = RELIC_DEFS.find(d => d.id === t);
+                        logMsg = `Relic recovered (+1 ${relicDef ? relicDef.name : t}).`;
+                    } else {
+                        logMsg = `Relic fragment yielded nothing — pool empty.`;
+                    }
                 } else if (clickedTileVal === TILE_TYPES.SHOP) {
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
                 } else if (clickedTileVal === TILE_TYPES.EXIT) {
@@ -1845,9 +1876,14 @@
 
             function purchaseRandomRelic() {
                 if (G.energy < 3) return;
+                const t = pickRandomRelicId();
+                if (!t) {
+                    updateLog('SHOP: relic pool exhausted.');
+                    refreshShopUI();
+                    return;
+                }
                 G.energy -= 3;
                 flashEnergy('loss');
-                const t = pickRandomRelicId();
                 G.relicStacks[t] = (G.relicStacks[t] || 0) + 1;
                 const def = RELIC_DEFS.find(d => d.id === t);
                 updateLog(`SHOP: gained ${def ? def.name : t} relic.`);
@@ -1934,7 +1970,7 @@
             }
 
             // Energy-aware shortest-path BFS. Approximates first_surge/first_static as base power.
-            function computeMinMoves(level, startEnergy) {
+            function computeMinMoves(level, startEnergy, startStep = 0) {
                 const { grid, start, exit, rows, cols } = level;
                 const cap = getEffectiveCap();
                 const startKey = `${start[0]},${start[1]}`;
@@ -1949,7 +1985,7 @@
 
                 while (frontier.size > 0 && steps < maxSteps) {
                     steps++;
-                    const stepN = steps;
+                    const stepN = startStep + steps;
                     const next = new Map();
 
                     for (const [posKey, e] of frontier) {
@@ -1979,7 +2015,7 @@
 
                             const isExit = (nr === exit[0] && nc === exit[1]);
                             if (newE <= 0 && !isExit) continue;
-                            if (isExit) return stepN;
+                            if (isExit) return steps;
 
                             const nKey = `${nr},${nc}`;
                             if (seen.has(nKey) && seen.get(nKey) >= newE) continue;
@@ -1996,9 +2032,9 @@
 
             function updateLog(msg) {
                 const line = document.createElement('div');
-                line.textContent = msg;
+                line.innerHTML = highlight(msg);
                 els.log.appendChild(line);
-                els.logBackground.scrollTop = els.logBackground.scrollHeight;
+                els.logPane.scrollTop = els.logPane.scrollHeight;
             }
 
             function flashEnergy(type) {
@@ -2130,8 +2166,8 @@
             }
 
             const RELIC_DEFS = [
-                { id: 'surge',       tier: 'unique',  icon: '🔆', name: 'Surge',       activatable: false, cls: 'relic-surge' },
-                { id: 'efficiency',  tier: 'passive', icon: '🎯', name: 'Efficiency',  activatable: false, cls: 'relic-efficiency' },
+                { id: 'surge',       tier: 'unique',  icon: '🔆', name: 'Surge',       activatable: false, cls: 'relic-surge',       singleton: true },
+                { id: 'efficiency',  tier: 'passive', icon: '🎯', name: 'Efficiency',  activatable: false, cls: 'relic-efficiency',  singleton: true },
                 { id: 'jump',        tier: 'active',  icon: '🦘', name: 'Jump',        activatable: true,  cls: 'relic-jump' },
                 { id: 'shuffle',     tier: 'active',  icon: '🔀', name: 'Shuffle',     activatable: true,  cls: 'relic-shuffle' },
                 { id: 'mend',        tier: 'active',  icon: '🩹', name: 'Mend',        activatable: true,  cls: 'relic-mend' },
@@ -2146,7 +2182,8 @@
             ];
 
             // Weighted random relic pool used by relic-tile pickups and shop purchases.
-            // Surge is non-stacking: filtered out once owned.
+            // Singleton relics (e.g., Surge, Efficiency) are filtered out once owned, and
+            // automatically re-enter the pool if their stack count later drops to zero.
             const RELIC_POOL = [
                 { id: 'efficiency',  weight: 3 },
                 { id: 'jump',        weight: 3 },
@@ -2158,7 +2195,12 @@
             ];
 
             function pickRandomRelicId() {
-                const pool = RELIC_POOL.filter(p => !(p.id === 'surge' && (G.relicStacks.surge || 0) >= 1));
+                const pool = RELIC_POOL.filter(p => {
+                    const def = RELIC_DEFS.find(d => d.id === p.id);
+                    if (def && def.singleton && (G.relicStacks[p.id] || 0) >= 1) return false;
+                    return true;
+                });
+                if (pool.length === 0) return null;
                 const total = pool.reduce((s, p) => s + p.weight, 0);
                 let roll = rng() * total;
                 for (const p of pool) {
@@ -2234,7 +2276,7 @@
                         div.className = `reward-icon-container ${def.cls}`;
                         if (G.activeAbility === def.id) div.classList.add('armed');
                         div.textContent = def.icon;
-                        if (def.tier !== 'unique') {
+                        if (!def.singleton) {
                             const sub = document.createElement('span');
                             sub.className = 'stack-count';
                             sub.textContent = count;
@@ -2301,7 +2343,7 @@
                     if (id === 'momentum') {
                         const stepSub = document.createElement('span');
                         stepSub.className = 'step-count';
-                        stepSub.textContent = G.steps % 10;
+                        stepSub.textContent = G.persistentSteps % 10;
                         div.appendChild(stepSub);
                     }
 
@@ -2772,10 +2814,6 @@
                 const original = `SEED: ${SEED}`;
                 els.seedBar.textContent = 'COPIED';
                 setTimeout(() => { els.seedBar.textContent = original; }, 900);
-            });
-
-            els.opacityToggle.addEventListener('click', () => {
-                els.gameWrapper.classList.toggle('faded');
             });
 
             els.rewardsSortToggle.addEventListener('click', () => {
