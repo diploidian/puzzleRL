@@ -108,17 +108,17 @@
 
         /* Tile Styles */
         .tile[data-type="start"] { background-color: var(--tile-stable); }
-        .tile[data-type="exit"] { 
-            background-color: rgba(59, 130, 246, 0.2); 
-            border: 2px solid var(--tile-exit); 
-            box-shadow: inset 0 0 10px var(--tile-exit); 
+        .tile[data-type="exit"] {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 2px solid var(--tile-exit);
+            box-shadow: inset 0 0 10px var(--tile-exit);
         }
         .tile[data-type="cracked"] { background-color: var(--tile-cracked); }
         .tile[data-type="heavy"] { background-color: var(--tile-heavy); }
-        .tile[data-type="power"] { 
-            background-color: rgba(16, 185, 129, 0.1); 
-            border: 1px solid var(--tile-power); 
-            color: var(--tile-power); 
+        .tile[data-type="power"] {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--tile-power);
+            color: var(--tile-power);
         }
         .tile[data-type="broken"] { background-color: var(--broken-color); cursor: not-allowed; opacity: 0.2; }
         .tile[data-type="relic"] {
@@ -169,7 +169,7 @@
             font-weight: bold;
             transition: color 0.3s;
         }
-        
+
         #energy-display.critical {
             color: var(--danger-color);
             animation: flicker 0.6s infinite;
@@ -297,12 +297,20 @@
             cursor: pointer;
             letter-spacing: 1px;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         #rewards-sort-toggle:hover {
             background: var(--text-color);
             color: var(--bg-color);
         }
 
+        .reward-icon-container, .relic-icon-container {
+            width: 45px !important;
+            height: 45px !important;
+            font-size: 1.2rem !important;
+        }
         #active-rewards {
             display: flex;
             gap: 12px;
@@ -777,12 +785,18 @@
             <div id="game-body">
                 <div id="active-relics"></div>
                 <div id="grid-container"></div>
+                <div id="efficiency-bar-container" style="display: none; margin-left: 16px; flex-direction: column; align-items: center; justify-content: flex-end; height: 360px; width: 24px; background: #1f2937; border: 1px solid #4b5563; border-radius: 4px; position: relative;">
+                    <div id="efficiency-bar-fill" style="width: 100%; background: #a855f7; border-radius: 4px; transition: height 0.3s; height: 0%;"></div>
+                    <div id="efficiency-bar-text" style="position: absolute; top: -25px; color: #a855f7; font-size: 0.8rem; font-weight: bold; width: 60px; text-align: center; left: -18px;"></div>
+                </div>
                 <div id="game-body-spacer" aria-hidden="true"></div>
             </div>
 
             <div id="rewards-section">
                 <div id="rewards-controls">
-                    <button id="rewards-sort-toggle" type="button">SORT: ACQUISITION</button>
+                    <button id="rewards-sort-toggle" type="button" title="Toggle Sort">
+                        <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    </button>
                 </div>
                 <div id="active-rewards"></div>
             </div>
@@ -1325,6 +1339,23 @@
             }
 
             function render() {
+                const effTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
+                const barCont = document.getElementById('efficiency-bar-container');
+                if (effTrigger > 0 && G.minMovesThisLevel > 0) {
+                    barCont.style.display = 'flex';
+                    const pct = Math.min(100, Math.max(0, (G.steps / G.minMovesThisLevel) * 100));
+                    document.getElementById('efficiency-bar-fill').style.height = `${pct}%`;
+                    document.getElementById('efficiency-bar-text').textContent = `${G.steps}/${G.minMovesThisLevel}`;
+                    if (G.steps > G.minMovesThisLevel) {
+                        document.getElementById('efficiency-bar-fill').style.background = '#ef4444';
+                        document.getElementById('efficiency-bar-text').style.color = '#ef4444';
+                    } else {
+                        document.getElementById('efficiency-bar-fill').style.background = '#a855f7';
+                        document.getElementById('efficiency-bar-text').style.color = '#a855f7';
+                    }
+                } else {
+                    barCont.style.display = 'none';
+                }
                 els.grid.innerHTML = '';
                 els.level.textContent = G.level + 1;
                 els.energy.textContent = fmtEnergy(G.energy);
@@ -1341,7 +1372,7 @@
                     for (let c = 0; c < currentLevelData.cols; c++) {
                         const tileVal = G.currentGrid[r][c];
                         const tileDef = TILE_MAP[tileVal];
-                        
+
                         const div = document.createElement('div');
                         div.className = 'tile';
                         div.dataset.type = tileDef.type;
@@ -1440,11 +1471,11 @@
             function updateTooltipPosition(e) {
                 let x = e.clientX + 15;
                 let y = e.clientY + 15;
-                
+
                 // Keep tooltip on screen
                 if (x + els.tooltip.offsetWidth > window.innerWidth) x = e.clientX - els.tooltip.offsetWidth - 15;
                 if (y + els.tooltip.offsetHeight > window.innerHeight) y = e.clientY - els.tooltip.offsetHeight - 15;
-                
+
                 els.tooltip.style.left = x + 'px';
                 els.tooltip.style.top = y + 'px';
             }
@@ -1470,15 +1501,15 @@
 
                 if (G.activeAbility === 'crystallize') {
                     if (G.currentGrid[row][col] !== TILE_TYPES.POWER) return;
-                    if (G.energy < 3) { updateLog('CRYSTALLIZE failed: not enough Energy.'); return; }
-                    G.energy -= 3;
+                    if (G.energy < 2) { updateLog('CRYSTALLIZE failed: not enough Energy.'); return; }
+                    G.energy -= 2;
                     G.currentGrid[row][col] = TILE_TYPES.RELIC;
                     G.relicStacks.crystallize = Math.max(0, (G.relicStacks.crystallize || 0) - 1);
                     G.activeAbility = null;
                     flashEnergy('loss');
                     updateLog('CRYSTALLIZE: Power Node converted into a Relic Fragment.');
                     render();
-                    showFloatingText(row, col, -3);
+                    showFloatingText(row, col, -2);
                     renderActiveRelics();
                     renderStats();
                     return;
@@ -1511,6 +1542,7 @@
                     case TILE_TYPES.SHOP:    cost = 3;                logMsg = "Marketplace accessed."; break;
                 }
                 cost = applyStepCostMods(cost, stepN);
+                if (isJump) { cost = 0; }
                 G.energy -= cost;
 
                 // 2. Tile-specific gains/drains
@@ -1653,12 +1685,12 @@
                         G.activeAbility = null;
                         updateLog('Crystallize disarmed.');
                     } else if ((G.relicStacks.crystallize || 0) > 0) {
-                        if (G.energy < 3) {
-                            updateLog('Crystallize requires 3 Energy.');
+                        if (G.energy < 2) {
+                            updateLog('Crystallize requires 2 Energy.');
                             return;
                         }
                         G.activeAbility = 'crystallize';
-                        updateLog('Crystallize armed: pick a Power Node to convert into a Relic (-3 Energy).');
+                        updateLog('Crystallize armed: pick a Power Node to convert into a Relic (-2 Energy).');
                     }
                     render();
                     renderActiveRelics();
@@ -2141,7 +2173,7 @@
                 if (id === 'efficiency') {
                     return {
                         title: `Efficiency (×${count})`,
-                        body: 'On a Floor cleared in optimal moves, restores Energy equal to your highest Boon stack count. Jump stacks also satisfy the trigger; Shuffle stacks do not.'
+                        body: 'On a Floor cleared in optimal moves, restores Energy equal to your highest Boon stack count. Jump and Shuffle stacks also satisfy the trigger.'
                     };
                 }
                 if (id === 'jump') {
@@ -2153,7 +2185,7 @@
                 if (id === 'shuffle') {
                     return {
                         title: `Shuffle (×${count})`,
-                        body: 'Click to randomize all Tiles on the current Floor (including Exit). Costs 3 Energy + 1 stack. Can lock the player in. Disables Efficiency for this Floor.'
+                        body: 'Click to randomize all Tiles on the current Floor (including Exit). Costs 3 Energy + 1 stack. Can lock the player in. Counts toward Efficiency trigger.'
                     };
                 }
                 if (id === 'mend') {
@@ -2165,7 +2197,7 @@
                 if (id === 'crystallize') {
                     return {
                         title: `Crystallize (×${count})`,
-                        body: 'Click to arm. Then click any Power Node to convert it to a Relic Fragment for 3 Energy. Consumes 1 stack.'
+                        body: 'Click to arm. Then click any Power Node to convert it to a Relic Fragment for 2 Energy. Consumes 1 stack.'
                     };
                 }
                 if (id === 'invert') {
@@ -2177,7 +2209,7 @@
                 if (id === 'surge') {
                     return {
                         title: `Surge${count > 1 ? ` (×${count} — only 1 active)` : ''}`,
-                        body: 'Power Nodes give +3 base Energy. Does NOT stack — extra copies have no effect.'
+                        body: 'Power Nodes give +3 base Energy.'
                     };
                 }
                 return { title: '', body: '' };
@@ -2346,7 +2378,7 @@
                     else                    valueHtml = `<span class="delta-pos">×${count}</span>`;
                     relicHtml += `<div class="stats-row"><span>${def.icon} ${def.name}</span>${valueHtml}</div>`;
                 });
-                const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
+                const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
                 if (efficiencyTrigger > 0) {
                     const payout = maxBoonStacks();
                     relicHtml += `<div class="stats-row"><span>Efficiency payout</span><span class="${payout > 0 ? 'delta-pos' : ''}">+${payout} on optimal</span></div>`;
@@ -2388,7 +2420,8 @@
 
             function renderDevPanel() {
                 if (!G.devUnlocked) { showDevPwPrompt(); return; }
-                let html = '<div class="stats-section-title">BOONS</div>';
+                let html = '<div style="margin-bottom:8px;"><button class="dev-btn" id="dev-lvl-down">Level -1</button> <button class="dev-btn" id="dev-lvl-up">Level +1</button></div>';
+                html += '<div class="stats-section-title">BOONS</div>';
                 BOONS.forEach(b => {
                     const stacks = stk(b.id);
                     html += `<div class="dev-row" data-reward="${b.id}">
@@ -2444,6 +2477,10 @@
                         <button id="dev-seed-apply">RELOAD</button>
                     </div>`;
                 els.devPanel.innerHTML = html;
+                const lvlDown = els.devPanel.querySelector('#dev-lvl-down');
+                if (lvlDown) lvlDown.addEventListener('click', () => { if(G.level>0) { G.level--; initLevel(G.level); renderDevPanel(); } });
+                const lvlUp = els.devPanel.querySelector('#dev-lvl-up');
+                if (lvlUp) lvlUp.addEventListener('click', () => { if(G.level<GAME_LEVELS.length-1) { G.level++; initLevel(G.level); renderDevPanel(); } });
                 els.devPanel.querySelectorAll('button[data-id]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const id = btn.dataset.id;
@@ -2537,7 +2574,7 @@
                 G.isGameOver = true;
                 let exitMsg = "EXIT SECURED.";
                 const subOptimal = G.minMovesThisLevel > 0 && G.steps < G.minMovesThisLevel;
-                const optimal = !subOptimal && G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel && !G.shuffledThisLevel;
+                const optimal = !subOptimal && G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel;
 
                 if (subOptimal) {
                     let topId = null, topCount = 0;
@@ -2562,7 +2599,7 @@
                         ? `SUPER-OPTIMAL RUN. +1 ${topName}, ${refillTxt}.`
                         : `SUPER-OPTIMAL RUN. ${refillTxt}.`;
                 } else if (optimal) {
-                    const triggerStacks = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
+                    const triggerStacks = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
                     if (triggerStacks > 0) {
                         const payout = maxBoonStacks();
                         if (payout > 0) {
@@ -2625,15 +2662,15 @@
                 if (allowEpic) {
                     if (r < 0.05) return 'epic';
                     if (r < 0.20) return 'rare';
-                    if (r < 0.50) return 'uncommon';
+                    if (r < 0.35) return 'uncommon';
                     return 'common';
                 }
                 if (allowRare) {
                     if (r < 0.10) return 'rare';
-                    if (r < 0.40) return 'uncommon';
+                    if (r < 0.25) return 'uncommon';
                     return 'common';
                 }
-                if (r < 0.30) return 'uncommon';
+                if (r < 0.15) return 'uncommon';
                 return 'common';
             }
 
@@ -2690,7 +2727,9 @@
                     const btn = document.createElement('div');
                     btn.className = `reward-button rarity-${opt.rarity}`;
 
-                    let html = `<div class="reward-title">Subroutine Package</div>`;
+                    const prefix = CATEGORY_PREFIX[opt.boons[0].cat];
+                    const suffix = opt.banes && opt.banes.length > 0 ? CATEGORY_SUFFIX[opt.banes[0].cat] : 'Package';
+                    let html = `<div class="reward-title">${prefix} ${suffix}</div>`;
                     opt.boons.forEach(b => html += `<div class="boon-text">+ ${fullRewardName(b)}: ${b.desc(1)}</div>`);
                     opt.banes.forEach(b => html += `<div class="bane-text">- ${fullRewardName(b)}: ${b.desc(1)}</div>`);
 
@@ -2719,7 +2758,7 @@
                 els.overlayDesc.textContent = desc;
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'block';
-                
+
                 els.actionBtn.textContent = isRestart ? "REBOOT SYSTEM" : "PLAY AGAIN";
                 els.actionBtn.onclick = () => window.location.reload();
 
@@ -2741,7 +2780,7 @@
 
             els.rewardsSortToggle.addEventListener('click', () => {
                 G.rewardSortMode = G.rewardSortMode === 'acquisition' ? 'category' : 'acquisition';
-                els.rewardsSortToggle.textContent = `SORT: ${G.rewardSortMode === 'acquisition' ? 'ACQUISITION' : 'BOON / BANE'}`;
+
                 renderActiveRewards();
             });
 
