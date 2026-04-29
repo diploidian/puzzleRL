@@ -42,7 +42,7 @@
             flex-shrink: 0;
             height: 100vh;
             overflow-y: auto;
-            padding: 16px 16px;
+            padding: 16px;
             box-sizing: border-box;
             border-right: 1px dashed #30363d;
             color: #6b7280;
@@ -99,7 +99,7 @@
             letter-spacing: 1px;
         }
 
-        #efficiency-bar-wrap {
+        #efficiency-bar-container {
             width: 100%;
             margin-bottom: 16px;
             display: flex;
@@ -128,17 +128,18 @@
             position: absolute;
             top: 0; left: 0;
             height: 100%;
+            width: 0%;
             background: var(--text-color);
             box-shadow: 0 0 6px rgba(88, 214, 141, 0.5) inset;
             transition: width 0.25s ease, background-color 0.25s ease;
         }
-        #efficiency-bar-fill.over {
-            background: var(--danger-color);
-            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5) inset;
-        }
         #efficiency-bar-fill.optimal {
             background: #facc15;
             box-shadow: 0 0 6px rgba(250, 204, 21, 0.5) inset;
+        }
+        #efficiency-bar-fill.over {
+            background: var(--danger-color);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5) inset;
         }
 
         #grid-container {
@@ -177,17 +178,17 @@
 
         /* Tile Styles */
         .tile[data-type="start"] { background-color: var(--tile-stable); }
-        .tile[data-type="exit"] { 
-            background-color: rgba(59, 130, 246, 0.2); 
-            border: 2px solid var(--tile-exit); 
-            box-shadow: inset 0 0 10px var(--tile-exit); 
+        .tile[data-type="exit"] {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 2px solid var(--tile-exit);
+            box-shadow: inset 0 0 10px var(--tile-exit);
         }
         .tile[data-type="cracked"] { background-color: var(--tile-cracked); }
         .tile[data-type="heavy"] { background-color: var(--tile-heavy); }
-        .tile[data-type="power"] { 
-            background-color: rgba(16, 185, 129, 0.1); 
-            border: 1px solid var(--tile-power); 
-            color: var(--tile-power); 
+        .tile[data-type="power"] {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--tile-power);
+            color: var(--tile-power);
         }
         .tile[data-type="broken"] { background-color: var(--broken-color); cursor: not-allowed; opacity: 0.2; }
         .tile[data-type="relic"] {
@@ -238,7 +239,7 @@
             font-weight: bold;
             transition: color 0.3s;
         }
-        
+
         #energy-display.critical {
             color: var(--danger-color);
             animation: flicker 0.6s infinite;
@@ -260,17 +261,12 @@
         #log .kw-floor  { color: #fb923c; }
         #log .kw-boon   { color: var(--text-color); }
         #log .kw-bane   { color: var(--danger-color); }
-        #log .kw-energy b, #log .kw-tile b, #log .kw-relic b,
-        #log .kw-floor b, #log .kw-boon b, #log .kw-bane b {
-            color: inherit;
-            font-weight: 700;
-        }
+        #log b { font-weight: 700; color: inherit; }
 
         #game-body {
-            display: grid;
-            grid-template-columns: 180px 1fr 180px;
-            align-items: start;
-            justify-items: center;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
             gap: 12px;
             width: 100%;
         }
@@ -284,7 +280,10 @@
             width: 180px;
             flex-shrink: 0;
         }
-        #game-body-spacer { width: 180px; }
+        #game-body-spacer {
+            width: 180px;
+            flex-shrink: 0;
+        }
         .relic-col {
             display: flex;
             flex-direction: column;
@@ -321,12 +320,20 @@
             cursor: pointer;
             letter-spacing: 1px;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         #rewards-sort-toggle:hover {
             background: var(--text-color);
             color: var(--bg-color);
         }
 
+        .reward-icon-container, .relic-icon-container {
+            width: 45px !important;
+            height: 45px !important;
+            font-size: 1.2rem !important;
+        }
         #active-rewards {
             display: flex;
             gap: 12px;
@@ -343,8 +350,8 @@
         }
 
         @media (max-width: 600px) {
-            #game-body { display: flex; flex-direction: column; }
-            #active-relics { width: 100%; justify-content: center; }
+            #game-body { flex-direction: column; }
+            #active-relics { width: 100%; }
             #game-body-spacer { display: none; }
         }
 
@@ -499,37 +506,30 @@
         .reward-button.rarity-common   { border-color: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.25); }
         .reward-button.rarity-uncommon { border-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.35); }
         .reward-button.rarity-rare     { border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); }
-        .reward-button.rarity-epic     { border-color: #a855f7; box-shadow: 0 0 14px rgba(168, 85, 247, 0.55); }
-        .reward-button.boon            { border-color: var(--text-color);   box-shadow: 0 0 8px rgba(88, 214, 141, 0.35); }
-        .reward-button.bane            { border-color: var(--danger-color); box-shadow: 0 0 8px rgba(239, 68, 68, 0.35); }
+        .reward-button.rarity-epic     { border-color: #a855f7; box-shadow: 0 0 16px rgba(168, 85, 247, 0.55); }
 
         .remove-stacks-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            margin: 12px 0;
+            margin-bottom: 12px;
         }
-        .remove-stacks-grid .remove-col {
+        .remove-stacks-col {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 0;
         }
-        .remove-stacks-grid .remove-col-title {
-            font-size: 0.75rem;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: center;
-            margin-bottom: 4px;
+        .remove-stack-button {
+            margin: 6px 0;
         }
-        .remove-stacks-grid .remove-col-title.boon { color: var(--text-color); }
-        .remove-stacks-grid .remove-col-title.bane { color: var(--danger-color); }
-        .remove-stacks-grid .reward-button { margin: 0; padding: 10px 12px; }
-        .remove-stacks-grid .empty-note {
-            font-size: 0.8rem;
+        .remove-stack-button.is-boon { border-color: var(--text-color); box-shadow: 0 0 6px rgba(88, 214, 141, 0.3); }
+        .remove-stack-button.is-bane { border-color: var(--danger-color); box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
+        .remove-stacks-empty {
             color: #6b7280;
             text-align: center;
+            font-size: 0.85rem;
             font-style: italic;
+            padding: 16px 0;
         }
 
         .reward-button:hover {
@@ -803,10 +803,10 @@
                 <div>ENERGY: <span id="energy-display">15</span>/<span id="max-energy-display">15</span></div>
             </div>
 
-            <div id="efficiency-bar-wrap" title="">
+            <div id="efficiency-bar-container" title="Steps used vs. optimal minimum for this Floor.">
                 <div id="efficiency-bar-label">
                     <span>EFFICIENCY</span>
-                    <span id="efficiency-bar-counter">0 / 0</span>
+                    <span id="efficiency-bar-text">0 / 0</span>
                 </div>
                 <div id="efficiency-bar-track"><div id="efficiency-bar-fill"></div></div>
             </div>
@@ -814,12 +814,14 @@
             <div id="game-body">
                 <div id="active-relics"></div>
                 <div id="grid-container"></div>
-                <div id="game-body-spacer"></div>
+                <div id="game-body-spacer" aria-hidden="true"></div>
             </div>
 
             <div id="rewards-section">
                 <div id="rewards-controls">
-                    <button id="rewards-sort-toggle" type="button">SORT: ACQUISITION</button>
+                    <button id="rewards-sort-toggle" type="button" title="Toggle Sort">
+                        <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    </button>
                 </div>
                 <div id="active-rewards"></div>
             </div>
@@ -843,7 +845,7 @@
     <div id="overlay">
         <div class="modal-box">
             <h2 id="overlay-title">SYSTEM REFRESH</h2>
-            <p id="overlay-desc">Select a subroutine package to install:</p>
+            <p id="overlay-desc">Select a subroutine package:</p>
             <div id="reward-choices"></div>
             <button id="overlay-action-btn" class="action-button" style="display: none;">CONTINUE</button>
         </div>
@@ -1144,52 +1146,50 @@
                 yield_reduce:   'Static'
             };
 
-            // `vps` = value per stack. `total(count)` returns the effective magnitude actually applied
-            // (some effects floor on 0.5 scaling). Displayed totals in tooltips use total(count).
             const BOONS = [
-                // Reinforced — tile cost reducers (0.5 per stack, floored when applied)
-                { id: 'heavy_damp',      cat: 'cost_reduce', type: 'boon', name: 'Footing',   icon: '🪶', vps: 0.5, desc: (s) => `Heavy Tiles cost ${0.5*s} less Energy.`,            total: (s) => Math.floor(s * 0.5) },
-                { id: 'crack_pad',       cat: 'cost_reduce', type: 'boon', name: 'Treads',    icon: '🥾', vps: 0.5, desc: (s) => `Cracked Tiles cost ${0.5*s} less Energy (min 0).`,  total: (s) => Math.floor(s * 0.5) },
-                { id: 'firm_grip',       cat: 'cost_reduce', type: 'boon', name: 'Grip',      icon: '🦶', vps: 0.5, desc: (s) => `Every 10th step costs ${0.5*s} less Energy.`,      total: (s) => Math.floor(s * 0.5) },
+                // Reinforced — tile cost reducers
+                { id: 'heavy_damp',      cat: 'cost_reduce', type: 'boon', name: 'Footing',   icon: '🪶', desc: (s) => `Heavy Tiles cost ${0.5*s} less Energy.`,                value: (s) => 0.5*s },
+                { id: 'crack_pad',       cat: 'cost_reduce', type: 'boon', name: 'Treads',    icon: '🥾', desc: (s) => `Cracked Tiles cost ${0.5*s} less Energy (min 0).`,      value: (s) => 0.5*s },
+                { id: 'firm_grip',       cat: 'cost_reduce', type: 'boon', name: 'Grip',      icon: '🦶', desc: (s) => `Every 10th step costs ${0.5*s} less Energy.`,          value: (s) => 0.5*s },
                 // Expanded — capacity
-                { id: 'max_energy',      cat: 'capacity',    type: 'boon', name: 'Battery',   icon: '🔋', vps: 2,   desc: (s) => `+${2*s} Max Energy.`,                              total: (s) => 2 * s },
-                { id: 'level_bonus',     cat: 'capacity',    type: 'boon', name: 'Reserve',   icon: '🧪', vps: 1,   desc: (s) => `+${s} Energy at the start of each Floor.`,         total: (s) => s },
-                { id: 'overflow_cap',    cat: 'capacity',    type: 'boon', name: 'Threshold', icon: '📈', vps: 1,   desc: (s) => `Effective energy cap raised by +${s}.`,            total: (s) => s },
+                { id: 'max_energy',      cat: 'capacity',    type: 'boon', name: 'Battery',   icon: '🔋', desc: (s) => `+${2*s} Max Energy.`,                                  value: (s) => 2*s },
+                { id: 'level_bonus',     cat: 'capacity',    type: 'boon', name: 'Reserve',   icon: '🧪', desc: (s) => `+${0.5*s} Energy at the start of each Floor.`,         value: (s) => 0.5*s },
+                { id: 'overflow_cap',    cat: 'capacity',    type: 'boon', name: 'Threshold', icon: '📈', desc: (s) => `Effective energy cap raised by +${0.5*s}.`,             value: (s) => 0.5*s },
                 // Salvaged — recovery on tile/event
-                { id: 'scavenge',        cat: 'recovery',    type: 'boon', name: 'Circuit',   icon: '♻️', vps: 0.5, desc: (s) => `Recover ${0.5*s} Energy on Cracked tiles (rounded down).`, total: (s) => Math.floor(s * 0.5) },
-                { id: 'exit_bonus',      cat: 'recovery',    type: 'boon', name: 'Coupling',  icon: '🔌', vps: 1,   desc: (s) => `+${s} Energy when reaching the Exit.`,             total: (s) => s },
-                { id: 'heavy_recover',   cat: 'recovery',    type: 'boon', name: 'Plating',   icon: '🛡️', vps: 1,   desc: (s) => `Recover ${s} Energy when stepping onto Heavy tiles.`, total: (s) => s },
-                // Synced — periodic gain (0.5 per stack, floored when applied)
-                { id: 'momentum',        cat: 'tempo_gain',  type: 'boon', name: 'Drive',     icon: '👟', vps: 0.5, desc: (s) => `Recover ${0.5*s} Energy every 10 steps.`,          total: (s) => Math.floor(s * 0.5) },
-                { id: 'tempo_5',         cat: 'tempo_gain',  type: 'boon', name: 'Flow',      icon: '💨', vps: 0.5, desc: (s) => `Recover ${0.5*s} Energy every 5 steps.`,           total: (s) => Math.floor(s * 0.5) },
-                { id: 'tempo_3',         cat: 'tempo_gain',  type: 'boon', name: 'Pulse',     icon: '🌊', vps: 0.5, desc: (s) => `Recover ${0.5*s} Energy every 3 steps.`,           total: (s) => Math.floor(s * 0.5) },
+                { id: 'scavenge',        cat: 'recovery',    type: 'boon', name: 'Circuit',   icon: '♻️', desc: (s) => `Recover ${0.5*s} Energy on Cracked tiles.`,             value: (s) => 0.5*s },
+                { id: 'exit_bonus',      cat: 'recovery',    type: 'boon', name: 'Coupling',  icon: '🔌', desc: (s) => `+${0.5*s} Energy when reaching the Exit.`,              value: (s) => 0.5*s },
+                { id: 'heavy_recover',   cat: 'recovery',    type: 'boon', name: 'Plating',   icon: '🛡️', desc: (s) => `Recover ${0.5*s} Energy when stepping onto Heavy tiles.`, value: (s) => 0.5*s },
+                // Synced — periodic gain
+                { id: 'momentum',        cat: 'tempo_gain',  type: 'boon', name: 'Drive',     icon: '👟', desc: (s) => `Recover ${0.5*s} Energy every 10 steps.`,               value: (s) => 0.5*s },
+                { id: 'tempo_5',         cat: 'tempo_gain',  type: 'boon', name: 'Flow',      icon: '💨', desc: (s) => `Recover ${0.5*s} Energy every 5 steps.`,                value: (s) => 0.5*s },
+                { id: 'tempo_3',         cat: 'tempo_gain',  type: 'boon', name: 'Pulse',     icon: '🌊', desc: (s) => `Recover ${0.5*s} Energy every 3 steps.`,                value: (s) => 0.5*s },
                 // Charged — power yield
-                { id: 'power_surge',     cat: 'yield',       type: 'boon', name: 'Conduit',   icon: '⚡', vps: 1,   desc: (s) => `Power Nodes give +${s} extra Energy.`,             total: (s) => s },
-                { id: 'first_surge',     cat: 'yield',       type: 'boon', name: 'Surge',     icon: '✨', vps: 2,   desc: (s) => `First Power Node per Floor gives +${2*s} extra Energy.`, total: (s) => 2 * s },
-                { id: 'charged_reserve', cat: 'yield',       type: 'boon', name: 'Reserve',   icon: '🪙', vps: 1,   desc: (s) => `Each Power consumed grants +${s} permanent Max Energy.`, total: (s) => s }
+                { id: 'power_surge',     cat: 'yield',       type: 'boon', name: 'Conduit',   icon: '⚡', desc: (s) => `Power Nodes give +${0.5*s} extra Energy.`,              value: (s) => 0.5*s },
+                { id: 'first_surge',     cat: 'yield',       type: 'boon', name: 'Surge',     icon: '✨', desc: (s) => `First Power Node per Floor gives +${2*s} extra Energy.`, value: (s) => 2*s },
+                { id: 'charged_reserve', cat: 'yield',       type: 'boon', name: 'Reserve',   icon: '🪙', desc: (s) => `Each Power consumed grants +${0.5*s} permanent Max Energy.`, value: (s) => 0.5*s }
             ];
 
             const BANES = [
-                // Decay — tile cost increase (0.5 per stack, floored when applied)
-                { id: 'dense',         cat: 'cost_increase',  type: 'bane', name: 'Pressure', icon: '🪨', vps: 0.5, desc: (s) => `Heavy Tiles cost ${0.5*s} MORE Energy.`,    total: (s) => Math.floor(s * 0.5) },
-                { id: 'crack_decay',   cat: 'cost_increase',  type: 'bane', name: 'Surface',  icon: '🥀', vps: 0.5, desc: (s) => `Cracked Tiles cost ${0.5*s} MORE Energy.`,  total: (s) => Math.floor(s * 0.5) },
-                { id: 'tariff',        cat: 'cost_increase',  type: 'bane', name: 'Tariff',   icon: '💸', vps: 0.5, desc: (s) => `Stable Tiles cost ${0.5*s} MORE Energy.`,   total: (s) => Math.floor(s * 0.5) },
+                // Decay — tile cost increase
+                { id: 'dense',         cat: 'cost_increase',  type: 'bane', name: 'Pressure', icon: '🪨', desc: (s) => `Heavy Tiles cost ${0.5*s} MORE Energy.`,    value: (s) => 0.5*s },
+                { id: 'crack_decay',   cat: 'cost_increase',  type: 'bane', name: 'Surface',  icon: '🥀', desc: (s) => `Cracked Tiles cost ${0.5*s} MORE Energy.`,  value: (s) => 0.5*s },
+                { id: 'tariff',        cat: 'cost_increase',  type: 'bane', name: 'Tariff',   icon: '💸', desc: (s) => `Stable Tiles cost ${0.5*s} MORE Energy.`,   value: (s) => 0.5*s },
                 // Drain — capacity reduction
-                { id: 'corroded',      cat: 'capacity_drain', type: 'bane', name: 'Battery',  icon: '🛑', vps: 1,   desc: (s) => `Max Energy reduced by ${s}.`,               total: (s) => s },
-                { id: 'level_drain',   cat: 'capacity_drain', type: 'bane', name: 'Reserve',  icon: '🚱', vps: 1,   desc: (s) => `Lose ${s} Energy at the start of each Floor.`, total: (s) => s },
-                { id: 'cap_drain',     cat: 'capacity_drain', type: 'bane', name: 'Cap',      icon: '🪫', vps: 1,   desc: (s) => `Effective energy cap reduced by ${s}.`,     total: (s) => s },
+                { id: 'corroded',      cat: 'capacity_drain', type: 'bane', name: 'Battery',  icon: '🛑', desc: (s) => `Max Energy reduced by ${0.5*s}.`,           value: (s) => 0.5*s },
+                { id: 'level_drain',   cat: 'capacity_drain', type: 'bane', name: 'Reserve',  icon: '🚱', desc: (s) => `Lose ${0.5*s} Energy at the start of each Floor.`, value: (s) => 0.5*s },
+                { id: 'cap_drain',     cat: 'capacity_drain', type: 'bane', name: 'Cap',      icon: '🪫', desc: (s) => `Effective energy cap reduced by ${0.5*s}.`, value: (s) => 0.5*s },
                 // Corruption — drain on tile/event
-                { id: 'crack_corrupt', cat: 'drain',          type: 'bane', name: 'Frame',    icon: '⚠️', vps: 1,   desc: (s) => `Lose ${s} Energy on Cracked tiles.`,         total: (s) => s },
-                { id: 'exit_corrupt',  cat: 'drain',          type: 'bane', name: 'Reach',    icon: '🚪', vps: 1,   desc: (s) => `Lose ${s} Energy when reaching the Exit.`,   total: (s) => s },
-                { id: 'heavy_corrupt', cat: 'drain',          type: 'bane', name: 'Plate',    icon: '💢', vps: 1,   desc: (s) => `Lose ${s} Energy when stepping onto Heavy tiles.`, total: (s) => s },
-                // Erosion — periodic loss (0.5 per stack, floored when applied)
-                { id: 'leak',          cat: 'tempo_loss',     type: 'bane', name: 'Steady',   icon: '💧', vps: 0.5, desc: (s) => `Lose ${0.5*s} Energy every 5 steps.`,        total: (s) => Math.floor(s * 0.5) },
-                { id: 'slow_leak',     cat: 'tempo_loss',     type: 'bane', name: 'Slow',     icon: '🐌', vps: 0.5, desc: (s) => `Lose ${0.5*s} Energy every 10 steps.`,       total: (s) => Math.floor(s * 0.5) },
-                { id: 'rapid_leak',    cat: 'tempo_loss',     type: 'bane', name: 'Rapid',    icon: '🌪️', vps: 0.5, desc: (s) => `Lose ${0.5*s} Energy every 3 steps.`,        total: (s) => Math.floor(s * 0.5) },
+                { id: 'crack_corrupt', cat: 'drain',          type: 'bane', name: 'Frame',    icon: '⚠️', desc: (s) => `Lose ${0.5*s} Energy on Cracked tiles.`,    value: (s) => 0.5*s },
+                { id: 'exit_corrupt',  cat: 'drain',          type: 'bane', name: 'Reach',    icon: '🚪', desc: (s) => `Lose ${0.5*s} Energy when reaching the Exit.`, value: (s) => 0.5*s },
+                { id: 'heavy_corrupt', cat: 'drain',          type: 'bane', name: 'Plate',    icon: '💢', desc: (s) => `Lose ${0.5*s} Energy when stepping onto Heavy tiles.`, value: (s) => 0.5*s },
+                // Erosion — periodic loss
+                { id: 'leak',          cat: 'tempo_loss',     type: 'bane', name: 'Steady',   icon: '💧', desc: (s) => `Lose ${0.5*s} Energy every 5 steps.`,       value: (s) => 0.5*s },
+                { id: 'slow_leak',     cat: 'tempo_loss',     type: 'bane', name: 'Slow',     icon: '🐌', desc: (s) => `Lose ${0.5*s} Energy every 10 steps.`,      value: (s) => 0.5*s },
+                { id: 'rapid_leak',    cat: 'tempo_loss',     type: 'bane', name: 'Rapid',    icon: '🌪️', desc: (s) => `Lose ${0.5*s} Energy every 3 steps.`,       value: (s) => 0.5*s },
                 // Static — yield reduction
-                { id: 'diminish',      cat: 'yield_reduce',   type: 'bane', name: 'Conduit',  icon: '🔻', vps: 0.5, desc: (s) => `Power Nodes give -${0.5*s} Energy (rounded down).`, total: (s) => Math.floor(s * 0.5) },
-                { id: 'first_static',  cat: 'yield_reduce',   type: 'bane', name: 'Surge',    icon: '🌫️', vps: 1,   desc: (s) => `First Power Node per Floor gives -${s} Energy.`, total: (s) => s },
-                { id: 'tax_static',    cat: 'yield_reduce',   type: 'bane', name: 'Reserve',  icon: '📉', vps: 1,   desc: (s) => `Each Power consumed reduces Max Energy by ${s} (permanent).`, total: (s) => s }
+                { id: 'diminish',      cat: 'yield_reduce',   type: 'bane', name: 'Conduit',  icon: '🔻', desc: (s) => `Power Nodes give -${0.5*s} Energy.`,        value: (s) => 0.5*s },
+                { id: 'first_static',  cat: 'yield_reduce',   type: 'bane', name: 'Surge',    icon: '🌫️', desc: (s) => `First Power Node per Floor gives -${0.5*s} Energy.`, value: (s) => 0.5*s },
+                { id: 'tax_static',    cat: 'yield_reduce',   type: 'bane', name: 'Reserve',  icon: '📉', desc: (s) => `Each Power consumed reduces Max Energy by ${0.5*s} (permanent).`, value: (s) => 0.5*s }
             ];
 
             const ALL_REWARDS = [...BOONS, ...BANES];
@@ -1258,74 +1258,85 @@
                 logPane: document.getElementById('log-pane'),
                 activeRelics: document.getElementById('active-relics'),
                 rewardsSortToggle: document.getElementById('rewards-sort-toggle'),
-                effBarWrap: document.getElementById('efficiency-bar-wrap'),
+                effBarContainer: document.getElementById('efficiency-bar-container'),
                 effBarFill: document.getElementById('efficiency-bar-fill'),
-                effBarCounter: document.getElementById('efficiency-bar-counter')
+                effBarText: document.getElementById('efficiency-bar-text')
             };
 
             // Dynamic Calculations
             const stk = (id) => G.rewards[id] || 0;
 
+            function fmtEnergy(v) {
+                if (v === undefined || v === null) return v;
+                if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+                return (Math.round(v * 10) / 10).toString();
+            }
+            function fmtSigned(v) {
+                if (v === 0) return '0';
+                const sign = v > 0 ? '+' : '';
+                return sign + fmtEnergy(v);
+            }
+
             function getMaxEnergy() {
                 let m = CONFIG.energy.start;
                 m += stk('max_energy') * 2;
-                m -= stk('corroded');
+                m -= stk('corroded') * 0.5;
                 m += G.permanentMaxBonus;
                 return Math.max(1, m);
             }
             function getEffectiveCap() {
-                return Math.max(1, getMaxEnergy() + stk('overflow_cap') - stk('cap_drain'));
+                return Math.max(1, getMaxEnergy() + stk('overflow_cap') * 0.5 - stk('cap_drain') * 0.5);
             }
             function getHeavyCost() {
                 let c = CONFIG.energy.heavy;
-                c -= Math.floor(stk('heavy_damp') * 0.5);
-                c += Math.floor(stk('dense') * 0.5);
-                return Math.max(1, c);
+                c -= stk('heavy_damp') * 0.5;
+                c += stk('dense') * 0.5;
+                return Math.max(0.5, c);
             }
             function getCrackedCost() {
                 let c = CONFIG.energy.cracked;
-                c -= Math.floor(stk('crack_pad') * 0.5);
-                c += Math.floor(stk('crack_decay') * 0.5);
+                c -= stk('crack_pad') * 0.5;
+                c += stk('crack_decay') * 0.5;
                 return Math.max(0, c);
             }
             function getPowerGain(isFirstPower) {
                 let p = CONFIG.energy.powerGain;
                 if ((G.relicStacks.surge || 0) > 0) p += 3;
-                p += stk('power_surge');
-                p -= Math.floor(stk('diminish') * 0.5);
+                p += stk('power_surge') * 0.5;
+                p -= stk('diminish') * 0.5;
                 if (isFirstPower) {
                     p += stk('first_surge') * 2;
-                    p -= stk('first_static');
+                    p -= stk('first_static') * 0.5;
                 }
                 return Math.max(0, p);
             }
             function getStableCost() {
-                return CONFIG.energy.stable + Math.floor(stk('tariff') * 0.5);
+                return CONFIG.energy.stable + stk('tariff') * 0.5;
             }
             function getCrackedRecycle() {
-                return Math.floor(stk('scavenge') * 0.5);
+                return stk('scavenge') * 0.5;
             }
-            function getCrackedDrain()  { return stk('crack_corrupt'); }
-            function getHeavyRecover()  { return stk('heavy_recover'); }
-            function getHeavyDrain()    { return stk('heavy_corrupt'); }
-            function getExitBonus()     { return stk('exit_bonus') + (G.level < 3 ? 3 : 0); }
-            function getExitDrain()     { return stk('exit_corrupt'); }
-            function getLevelStartBonus() { return stk('level_bonus'); }
-            function getLevelStartDrain() { return stk('level_drain'); }
+            function getCrackedDrain()  { return stk('crack_corrupt') * 0.5; }
+            function getHeavyRecover()  { return stk('heavy_recover') * 0.5; }
+            function getHeavyDrain()    { return stk('heavy_corrupt') * 0.5; }
+            function getExitBonus()     { return stk('exit_bonus') * 0.5 + (G.level < 3 ? 3 : 0); }
+            function getExitDrain()     { return stk('exit_corrupt') * 0.5; }
+            function getLevelStartBonus() { return stk('level_bonus') * 0.5; }
+            function getLevelStartDrain() { return stk('level_drain') * 0.5; }
 
             function applyStepCostMods(cost, stepN) {
-                if (stk('firm_grip') && stepN % 10 === 0) cost = Math.max(0, cost - Math.floor(stk('firm_grip') * 0.5));
+                if (stk('firm_grip') && stepN % 10 === 0) cost = Math.max(0, cost - stk('firm_grip') * 0.5);
                 return cost;
             }
 
             function getStepEnergyDelta(stepN) {
                 let d = 0;
-                if (stk('momentum') && stepN % 10 === 0) d += Math.floor(stk('momentum') * 0.5);
-                if (stk('tempo_5')  && stepN % 5  === 0) d += Math.floor(stk('tempo_5') * 0.5);
-                if (stk('tempo_3')  && stepN % 3  === 0) d += Math.floor(stk('tempo_3') * 0.5);
-                if (stk('slow_leak')&& stepN % 10 === 0) d -= Math.floor(stk('slow_leak') * 0.5);
-                if (stk('leak')     && stepN % 5  === 0) d -= Math.floor(stk('leak') * 0.5);
-                if (stk('rapid_leak')&&stepN % 3  === 0) d -= Math.floor(stk('rapid_leak') * 0.5);
+                if (stk('momentum')   && stepN % 10 === 0) d += stk('momentum')   * 0.5;
+                if (stk('tempo_5')    && stepN % 5  === 0) d += stk('tempo_5')    * 0.5;
+                if (stk('tempo_3')    && stepN % 3  === 0) d += stk('tempo_3')    * 0.5;
+                if (stk('slow_leak')  && stepN % 10 === 0) d -= stk('slow_leak')  * 0.5;
+                if (stk('leak')       && stepN % 5  === 0) d -= stk('leak')       * 0.5;
+                if (stk('rapid_leak') && stepN % 3  === 0) d -= stk('rapid_leak') * 0.5;
                 return d;
             }
 
@@ -1352,7 +1363,6 @@
                 renderActiveRewards();
                 renderActiveRelics();
                 renderStats();
-                renderEfficiencyBar();
                 updateLog(`Entered Floor ${levelIdx + 1}.`);
             }
 
@@ -1361,29 +1371,23 @@
                 const steps = G.steps | 0;
                 const denom = min > 0 ? min : 1;
                 const ratio = Math.min(1, steps / denom);
-                const fill = els.effBarFill;
-                fill.style.width = `${ratio * 100}%`;
-                fill.classList.remove('over', 'optimal');
+                els.effBarFill.style.width = `${ratio * 100}%`;
+                els.effBarFill.classList.remove('over', 'optimal');
                 if (min > 0) {
-                    if (steps > min) fill.classList.add('over');
-                    else if (steps === min) fill.classList.add('optimal');
+                    if (steps > min) els.effBarFill.classList.add('over');
+                    else if (steps === min) els.effBarFill.classList.add('optimal');
                 }
-                els.effBarCounter.textContent = min > 0 ? `${steps} / ${min}` : `${steps}`;
-                let tip;
-                if (min <= 0) tip = 'Steps used this Floor.';
-                else if (steps < min) tip = `${steps} of ${min} optimal steps used. Keep pace for an optimal clear.`;
-                else if (steps === min) tip = `Optimal pace: ${steps}/${min} steps.`;
-                else tip = `${steps} steps used; optimal was ${min}.`;
-                els.effBarWrap.title = tip;
+                els.effBarText.textContent = min > 0 ? `${steps} / ${min}` : `${steps}`;
             }
 
             function render() {
+                renderEfficiencyBar();
                 els.grid.innerHTML = '';
                 els.level.textContent = G.level + 1;
-                els.energy.textContent = G.energy;
-                
+                els.energy.textContent = fmtEnergy(G.energy);
+
                 let currentCap = getEffectiveCap();
-                els.maxEnergy.textContent = currentCap;
+                els.maxEnergy.textContent = fmtEnergy(currentCap);
 
                 if (G.energy <= Math.max(3, currentCap * 0.2)) { els.energy.classList.add('critical'); }
                 else { els.energy.classList.remove('critical'); }
@@ -1394,7 +1398,7 @@
                     for (let c = 0; c < currentLevelData.cols; c++) {
                         const tileVal = G.currentGrid[r][c];
                         const tileDef = TILE_MAP[tileVal];
-                        
+
                         const div = document.createElement('div');
                         div.className = 'tile';
                         div.dataset.type = tileDef.type;
@@ -1452,7 +1456,6 @@
                         els.grid.appendChild(div);
                     }
                 }
-                renderEfficiencyBar();
             }
 
             function getTileTooltipText(type) {
@@ -1494,11 +1497,11 @@
             function updateTooltipPosition(e) {
                 let x = e.clientX + 15;
                 let y = e.clientY + 15;
-                
+
                 // Keep tooltip on screen
                 if (x + els.tooltip.offsetWidth > window.innerWidth) x = e.clientX - els.tooltip.offsetWidth - 15;
                 if (y + els.tooltip.offsetHeight > window.innerHeight) y = e.clientY - els.tooltip.offsetHeight - 15;
-                
+
                 els.tooltip.style.left = x + 'px';
                 els.tooltip.style.top = y + 'px';
             }
@@ -1524,15 +1527,15 @@
 
                 if (G.activeAbility === 'crystallize') {
                     if (G.currentGrid[row][col] !== TILE_TYPES.POWER) return;
-                    if (G.energy < 3) { updateLog('CRYSTALLIZE failed: not enough Energy.'); return; }
-                    G.energy -= 3;
+                    if (G.energy < 2) { updateLog('CRYSTALLIZE failed: not enough Energy.'); return; }
+                    G.energy -= 2;
                     G.currentGrid[row][col] = TILE_TYPES.RELIC;
                     G.relicStacks.crystallize = Math.max(0, (G.relicStacks.crystallize || 0) - 1);
                     G.activeAbility = null;
                     flashEnergy('loss');
                     updateLog('CRYSTALLIZE: Power Node converted into a Relic Fragment.');
                     render();
-                    showFloatingText(row, col, -3);
+                    showFloatingText(row, col, -2);
                     renderActiveRelics();
                     renderStats();
                     return;
@@ -1566,6 +1569,7 @@
                     case TILE_TYPES.SHOP:    cost = 3;                logMsg = "Marketplace accessed."; break;
                 }
                 cost = applyStepCostMods(cost, stepN);
+                if (isJump) { cost = 0; }
                 G.energy -= cost;
 
                 // 2. Tile-specific gains/drains
@@ -1590,8 +1594,8 @@
                     const gain = getPowerGain(isFirst);
                     G.energy += gain;
                     G.firstPowerThisLevel = true;
-                    G.permanentMaxBonus += stk('charged_reserve');
-                    G.permanentMaxBonus -= stk('tax_static');
+                    G.permanentMaxBonus += stk('charged_reserve') * 0.5;
+                    G.permanentMaxBonus -= stk('tax_static') * 0.5;
                     G.currentGrid[row][col] = TILE_TYPES.STABLE;
                     logMsg = `Power node: +${gain} Energy.`;
                 } else if (clickedTileVal === TILE_TYPES.RELIC) {
@@ -1712,12 +1716,12 @@
                         G.activeAbility = null;
                         updateLog('Crystallize disarmed.');
                     } else if ((G.relicStacks.crystallize || 0) > 0) {
-                        if (G.energy < 3) {
-                            updateLog('Crystallize requires 3 Energy.');
+                        if (G.energy < 2) {
+                            updateLog('Crystallize requires 2 Energy.');
                             return;
                         }
                         G.activeAbility = 'crystallize';
-                        updateLog('Crystallize armed: pick a Power Node to convert into a Relic (-3 Energy).');
+                        updateLog('Crystallize armed: pick a Power Node to convert into a Relic (-2 Energy).');
                     }
                     render();
                     renderActiveRelics();
@@ -1808,9 +1812,15 @@
                 renderStats();
             }
 
+            function refreshShopUI() {
+                if (els.overlay.style.display === 'flex' && els.overlayTitle.textContent === 'MARKETPLACE') {
+                    showShop();
+                }
+            }
+
             function showShop() {
                 els.overlayTitle.textContent = "MARKETPLACE";
-                els.overlayDesc.textContent = "Choose a service:";
+                els.overlayDesc.textContent = `Pick any number of services. Energy: ${fmtEnergy(G.energy)}.`;
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'none';
 
@@ -1820,7 +1830,7 @@
                     const btn = document.createElement('div');
                     btn.className = 'reward-button';
                     let html = `<div class="reward-title">${title}</div>`;
-                    html += `<div class="boon-text">Cost: ${costEnergy} Energy</div>`;
+                    html += `<div class="boon-text">Cost: ${fmtEnergy(costEnergy)} Energy</div>`;
                     if (subtext) html += `<div class="bane-text">${subtext}</div>`;
                     btn.innerHTML = html;
                     if (!enabled) btn.style.opacity = '0.45';
@@ -1861,7 +1871,7 @@
                 renderActiveRewards();
                 renderActiveRelics();
                 renderStats();
-                showShop();
+                refreshShopUI();
             }
 
             function purchaseRandomRelic() {
@@ -1869,7 +1879,7 @@
                 const t = pickRandomRelicId();
                 if (!t) {
                     updateLog('SHOP: relic pool exhausted.');
-                    showShop();
+                    refreshShopUI();
                     return;
                 }
                 G.energy -= 3;
@@ -1881,75 +1891,80 @@
                 renderActiveRewards();
                 renderActiveRelics();
                 renderStats();
-                showShop();
+                refreshShopUI();
             }
 
             function showRemoveStacksMenu() {
                 els.overlayTitle.textContent = "REMOVE STACKS";
-                els.overlayDesc.textContent = "Pick a Boon or Bane. 2 stacks will be removed (or all if only 1).";
+                els.overlayDesc.textContent = `Pick a Boon (left) or Bane (right). 2 stacks removed per click. Energy: ${fmtEnergy(G.energy)}.`;
                 els.choices.innerHTML = '';
-
-                const boonEntries = [];
-                const baneEntries = [];
-                for (const [id, count] of Object.entries(G.rewards)) {
-                    if (count <= 0) continue;
-                    const r = ALL_REWARDS.find(x => x.id === id);
-                    if (!r) continue;
-                    (r.type === 'boon' ? boonEntries : baneEntries).push({ id, count, r });
-                }
 
                 const grid = document.createElement('div');
                 grid.className = 'remove-stacks-grid';
+                const boonCol = document.createElement('div');
+                boonCol.className = 'remove-stacks-col';
+                const baneCol = document.createElement('div');
+                baneCol.className = 'remove-stacks-col';
+                grid.appendChild(boonCol);
+                grid.appendChild(baneCol);
 
-                const buildCol = (entries, type, title) => {
-                    const col = document.createElement('div');
-                    col.className = 'remove-col';
-                    const head = document.createElement('div');
-                    head.className = `remove-col-title ${type}`;
-                    head.textContent = title;
-                    col.appendChild(head);
-                    if (entries.length === 0) {
-                        const note = document.createElement('div');
-                        note.className = 'empty-note';
-                        note.textContent = `No active ${type === 'boon' ? 'Boons' : 'Banes'}.`;
-                        col.appendChild(note);
-                        return col;
-                    }
-                    entries.forEach(({ id, count, r }) => {
-                        const btn = document.createElement('div');
-                        btn.className = `reward-button ${type}`;
-                        btn.innerHTML = `<div class="reward-title">${r.icon} ${fullRewardName(r)} (×${count})</div>`;
-                        btn.addEventListener('click', () => {
-                            G.energy -= 2;
-                            flashEnergy('loss');
-                            G.rewards[id] = Math.max(0, count - 2);
-                            if (G.rewards[id] === 0) delete G.rewards[id];
-                            updateLog(`SHOP: -2 stacks of ${fullRewardName(r)}.`);
-                            render();
-                            renderActiveRewards();
-                            renderActiveRelics();
-                            renderStats();
-                            showShop();
-                        });
-                        btn.addEventListener('mouseenter', (e) => {
-                            setTooltipHtmlBody(fullRewardName(r), rewardTooltipBodyHtml(r, count));
-                            els.tooltip.style.display = 'block';
-                            updateTooltipPosition(e);
-                        });
-                        btn.addEventListener('mousemove', updateTooltipPosition);
-                        btn.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
-                        col.appendChild(btn);
+                const entries = Object.entries(G.rewards).filter(([, c]) => c > 0);
+                entries.sort((a, b) => {
+                    const ra = ALL_REWARDS.find(x => x.id === a[0]);
+                    const rb = ALL_REWARDS.find(x => x.id === b[0]);
+                    return (ra?.name || '').localeCompare(rb?.name || '');
+                });
+
+                for (const [id, count] of entries) {
+                    const r = ALL_REWARDS.find(x => x.id === id);
+                    if (!r) continue;
+                    const btn = document.createElement('div');
+                    btn.className = `reward-button remove-stack-button ${r.type === 'boon' ? 'is-boon' : 'is-bane'}`;
+                    btn.innerHTML = `<div class="reward-title">${r.icon} ${fullRewardName(r)} <span class="boon-text">(×${count})</span></div>`;
+                    btn.addEventListener('mouseenter', (e) => {
+                        setTooltip(fullRewardName(r), r.desc(1), rewardTooltipOpts(r, count));
+                        els.tooltip.style.display = 'block';
+                        updateTooltipPosition(e);
                     });
-                    return col;
-                };
+                    btn.addEventListener('mousemove', updateTooltipPosition);
+                    btn.addEventListener('mouseleave', () => els.tooltip.style.display = 'none');
+                    if (G.energy < 2) btn.style.opacity = '0.45';
+                    else btn.addEventListener('click', () => {
+                        G.energy -= 2;
+                        flashEnergy('loss');
+                        G.rewards[id] = Math.max(0, count - 2);
+                        if (G.rewards[id] === 0) delete G.rewards[id];
+                        updateLog(`SHOP: -2 stacks of ${fullRewardName(r)}.`);
+                        render();
+                        renderActiveRewards();
+                        renderActiveRelics();
+                        renderStats();
+                        els.tooltip.style.display = 'none';
+                        const stillAny = Object.values(G.rewards).some(c => c > 0);
+                        if (!stillAny) showShop();
+                        else showRemoveStacksMenu();
+                    });
+                    (r.type === 'boon' ? boonCol : baneCol).appendChild(btn);
+                }
 
-                grid.appendChild(buildCol(boonEntries, 'boon', 'Boons'));
-                grid.appendChild(buildCol(baneEntries, 'bane', 'Banes'));
+                if (boonCol.children.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'remove-stacks-empty';
+                    empty.textContent = 'No Boons.';
+                    boonCol.appendChild(empty);
+                }
+                if (baneCol.children.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'remove-stacks-empty';
+                    empty.textContent = 'No Banes.';
+                    baneCol.appendChild(empty);
+                }
+
                 els.choices.appendChild(grid);
 
                 const back = document.createElement('div');
                 back.className = 'reward-button';
-                back.innerHTML = `<div class="reward-title">← Back</div>`;
+                back.innerHTML = `<div class="reward-title">← Back to Marketplace</div>`;
                 back.addEventListener('click', showShop);
                 els.choices.appendChild(back);
             }
@@ -2053,26 +2068,22 @@
                     .replace(/\n/g, '<br>');
             }
 
-            function setTooltip(title, body) {
+            function setTooltip(title, body, opts) {
+                opts = opts || {};
                 let html = `<span class="tt-title">${highlight(title)}</span>`;
                 if (body) html += `<span class="tt-desc">${highlight(body)}</span>`;
+                if (opts.totalHtml) html += `<span class="tt-desc">${opts.totalHtml}</span>`;
                 els.tooltip.innerHTML = html;
             }
 
-            // Like setTooltip but body is pre-built HTML (not escaped). Title is still escaped/highlighted.
-            function setTooltipHtmlBody(title, bodyHtml) {
-                let html = `<span class="tt-title">${highlight(title)}</span>`;
-                if (bodyHtml) html += `<span class="tt-desc">${bodyHtml}</span>`;
-                els.tooltip.innerHTML = html;
-            }
-
-            function rewardTooltipBodyHtml(r, count) {
-                const base = highlight(r.desc(1));
-                if (count <= 1) return base;
-                const totalFn = r.total || ((s) => (r.vps || 1) * s);
-                const total = totalFn(count);
-                const cls = r.type === 'boon' ? 'kw-boon' : 'kw-bane';
-                return `${base} <span class="${cls}"><b>(×${count} = ${total})</b></span>`;
+            function rewardTooltipOpts(rInfo, count) {
+                if (typeof rInfo.value !== 'function' || count <= 0) return {};
+                const total = rInfo.value(count);
+                const cls = rInfo.type === 'boon' ? 'delta-pos' : 'delta-neg';
+                const sign = rInfo.type === 'boon' ? '+' : '-';
+                return {
+                    totalHtml: `Total at ×${count}: <span class="${cls}">(${sign}${fmtEnergy(total)})</span>`
+                };
             }
 
             function flipAllTiles(success, callback) {
@@ -2105,7 +2116,7 @@
                 if (!tile) return;
                 const ft = document.createElement('div');
                 ft.className = `float-text ${amount > 0 ? 'gain' : 'loss'}`;
-                ft.textContent = (amount > 0 ? '+' : '') + amount;
+                ft.textContent = fmtSigned(amount);
                 tile.appendChild(ft);
                 setTimeout(() => { if (ft.parentNode) ft.parentNode.removeChild(ft); }, 1050);
             }
@@ -2204,7 +2215,7 @@
                 if (id === 'efficiency') {
                     return {
                         title: `Efficiency (×${count})`,
-                        body: 'On a Floor cleared in optimal moves, restores Energy equal to your highest Boon stack count. Jump stacks also satisfy the trigger; Shuffle stacks do not.'
+                        body: 'On a Floor cleared in optimal moves, restores Energy equal to your highest Boon stack count. Jump and Shuffle stacks also satisfy the trigger.'
                     };
                 }
                 if (id === 'jump') {
@@ -2216,7 +2227,7 @@
                 if (id === 'shuffle') {
                     return {
                         title: `Shuffle (×${count})`,
-                        body: 'Click to randomize all Tiles on the current Floor (including Exit). Costs 3 Energy + 1 stack. Can lock the player in. Disables Efficiency for this Floor.'
+                        body: 'Click to randomize all Tiles on the current Floor (including Exit). Costs 3 Energy + 1 stack. Can lock the player in. Counts toward Efficiency trigger.'
                     };
                 }
                 if (id === 'mend') {
@@ -2228,7 +2239,7 @@
                 if (id === 'crystallize') {
                     return {
                         title: `Crystallize (×${count})`,
-                        body: 'Click to arm. Then click any Power Node to convert it to a Relic Fragment for 3 Energy. Consumes 1 stack.'
+                        body: 'Click to arm. Then click any Power Node to convert it to a Relic Fragment for 2 Energy. Consumes 1 stack.'
                     };
                 }
                 if (id === 'invert') {
@@ -2240,7 +2251,7 @@
                 if (id === 'surge') {
                     return {
                         title: `Surge${count > 1 ? ` (×${count} — only 1 active)` : ''}`,
-                        body: 'Power Nodes give +3 base Energy. Does NOT stack — extra copies have no effect.'
+                        body: 'Power Nodes give +3 base Energy.'
                     };
                 }
                 return { title: '', body: '' };
@@ -2337,7 +2348,7 @@
                     }
 
                     div.addEventListener('mouseenter', (e) => {
-                        setTooltipHtmlBody(fullRewardName(rInfo), rewardTooltipBodyHtml(rInfo, count));
+                        setTooltip(fullRewardName(rInfo), rInfo.desc(1), rewardTooltipOpts(rInfo, count));
                         els.tooltip.style.display = 'block';
                         updateTooltipPosition(e);
                     });
@@ -2349,24 +2360,22 @@
             }
 
             function signedDelta(n) {
-                if (n === 0) return null;
+                if (Math.abs(n) < 1e-9) return null;
                 const cls = n > 0 ? 'delta-pos' : 'delta-neg';
-                const sign = n > 0 ? '+' : '';
-                return `<span class="${cls}">${sign}${n}</span>`;
+                return `<span class="${cls}">${fmtSigned(n)}</span>`;
             }
 
             function statsRow(label, base, current) {
                 const delta = current - base;
                 const deltaTxt = signedDelta(delta);
-                const valueCol = deltaTxt ? `${base} → ${current} (${deltaTxt})` : `${current}`;
+                const valueCol = deltaTxt ? `${fmtEnergy(base)} → ${fmtEnergy(current)} (${deltaTxt})` : `${fmtEnergy(current)}`;
                 return `<div class="stats-row"><span>${label}</span><span>${valueCol}</span></div>`;
             }
 
             function statsLine(label, value) {
-                if (value === 0) return '';
+                if (Math.abs(value) < 1e-9) return '';
                 const cls = value > 0 ? 'delta-pos' : 'delta-neg';
-                const sign = value > 0 ? '+' : '';
-                return `<div class="stats-row"><span>${label}</span><span class="${cls}">${sign}${value}</span></div>`;
+                return `<div class="stats-row"><span>${label}</span><span class="${cls}">${fmtSigned(value)}</span></div>`;
             }
 
             function renderStats() {
@@ -2392,11 +2401,10 @@
                 if (perEvent) html += `<div class="stats-section-title">PER EVENT</div>${perEvent}`;
 
                 let tempo = '';
-                const halfFloor = (id) => Math.floor(stk(id) * 0.5);
-                const t10 = (halfFloor('momentum') - halfFloor('slow_leak'));
-                const t5  = (halfFloor('tempo_5')  - halfFloor('leak'));
-                const t3  = (halfFloor('tempo_3')  - halfFloor('rapid_leak'));
-                const stride10 = (stk('firm_grip') ? -halfFloor('firm_grip') : 0);
+                const t10 = (stk('momentum') - stk('slow_leak'));
+                const t5  = (stk('tempo_5')  - stk('leak'));
+                const t3  = (stk('tempo_3')  - stk('rapid_leak'));
+                const stride10 = (stk('firm_grip') ? -stk('firm_grip') : 0) + stk('stride_decay');
                 tempo += statsLine('Every 10 steps', t10);
                 tempo += statsLine('Every 5 steps', t5);
                 tempo += statsLine('Every 3 steps', t3);
@@ -2412,7 +2420,7 @@
                     else                    valueHtml = `<span class="delta-pos">×${count}</span>`;
                     relicHtml += `<div class="stats-row"><span>${def.icon} ${def.name}</span>${valueHtml}</div>`;
                 });
-                const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
+                const efficiencyTrigger = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
                 if (efficiencyTrigger > 0) {
                     const payout = maxBoonStacks();
                     relicHtml += `<div class="stats-row"><span>Efficiency payout</span><span class="${payout > 0 ? 'delta-pos' : ''}">+${payout} on optimal</span></div>`;
@@ -2454,7 +2462,8 @@
 
             function renderDevPanel() {
                 if (!G.devUnlocked) { showDevPwPrompt(); return; }
-                let html = '<div class="stats-section-title">BOONS</div>';
+                let html = '<div style="margin-bottom:8px;"><button class="dev-btn" id="dev-lvl-down">Level -1</button> <button class="dev-btn" id="dev-lvl-up">Level +1</button></div>';
+                html += '<div class="stats-section-title">BOONS</div>';
                 BOONS.forEach(b => {
                     const stacks = stk(b.id);
                     html += `<div class="dev-row" data-reward="${b.id}">
@@ -2510,6 +2519,10 @@
                         <button id="dev-seed-apply">RELOAD</button>
                     </div>`;
                 els.devPanel.innerHTML = html;
+                const lvlDown = els.devPanel.querySelector('#dev-lvl-down');
+                if (lvlDown) lvlDown.addEventListener('click', () => { if(G.level>0) { G.level--; initLevel(G.level); renderDevPanel(); } });
+                const lvlUp = els.devPanel.querySelector('#dev-lvl-up');
+                if (lvlUp) lvlUp.addEventListener('click', () => { if(G.level<GAME_LEVELS.length-1) { G.level++; initLevel(G.level); renderDevPanel(); } });
                 els.devPanel.querySelectorAll('button[data-id]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const id = btn.dataset.id;
@@ -2548,8 +2561,8 @@
                     const reward = ALL_REWARDS.find(r => r.id === row.dataset.reward);
                     if (!reward) return;
                     row.addEventListener('mouseenter', (e) => {
-                        const stacks = Math.max(1, stk(reward.id));
-                        setTooltipHtmlBody(fullRewardName(reward), rewardTooltipBodyHtml(reward, stacks));
+                        const stacks = stk(reward.id);
+                        setTooltip(fullRewardName(reward), reward.desc(1), rewardTooltipOpts(reward, stacks));
                         els.tooltip.style.display = 'block';
                         updateTooltipPosition(e);
                     });
@@ -2603,7 +2616,7 @@
                 G.isGameOver = true;
                 let exitMsg = "EXIT SECURED.";
                 const subOptimal = G.minMovesThisLevel > 0 && G.steps < G.minMovesThisLevel;
-                const optimal = !subOptimal && G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel && !G.shuffledThisLevel;
+                const optimal = !subOptimal && G.minMovesThisLevel > 0 && G.steps === G.minMovesThisLevel;
 
                 if (subOptimal) {
                     let topId = null, topCount = 0;
@@ -2628,7 +2641,7 @@
                         ? `SUPER-OPTIMAL RUN. +1 ${topName}, ${refillTxt}.`
                         : `SUPER-OPTIMAL RUN. ${refillTxt}.`;
                 } else if (optimal) {
-                    const triggerStacks = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0);
+                    const triggerStacks = (G.relicStacks.efficiency || 0) + (G.relicStacks.jump || 0) + (G.relicStacks.shuffle || 0);
                     if (triggerStacks > 0) {
                         const payout = maxBoonStacks();
                         if (payout > 0) {
@@ -2685,21 +2698,21 @@
             };
 
             function rollRarity(floor) {
-                const allowEpic = floor >= 9; // Epic unlocked after Floor 9 (i.e., floors 10+).
-                const allowRare = floor >= 5; // Rare unlocked after Floor 5 (i.e., floors 6+).
+                const allowRare = floor >= 5;  // Floor 6+
+                const allowEpic = floor >= 10; // Floor 11+
                 const r = rng();
                 if (allowEpic) {
                     if (r < 0.05) return 'epic';
                     if (r < 0.20) return 'rare';
-                    if (r < 0.50) return 'uncommon';
+                    if (r < 0.35) return 'uncommon';
                     return 'common';
                 }
                 if (allowRare) {
                     if (r < 0.10) return 'rare';
-                    if (r < 0.40) return 'uncommon';
+                    if (r < 0.25) return 'uncommon';
                     return 'common';
                 }
-                if (r < 0.30) return 'uncommon';
+                if (r < 0.15) return 'uncommon';
                 return 'common';
             }
 
@@ -2727,7 +2740,7 @@
 
             function showRewards() {
                 els.overlayTitle.textContent = "SYSTEM STABLE";
-                els.overlayDesc.textContent = "Select a subroutine package for the next floor:";
+                els.overlayDesc.textContent = "Select a subroutine package:";
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'none';
 
@@ -2756,7 +2769,9 @@
                     const btn = document.createElement('div');
                     btn.className = `reward-button rarity-${opt.rarity}`;
 
-                    let html = `<div class="reward-title">Subroutine Package</div>`;
+                    const prefix = CATEGORY_PREFIX[opt.boons[0].cat];
+                    const suffix = opt.banes && opt.banes.length > 0 ? CATEGORY_SUFFIX[opt.banes[0].cat] : 'Package';
+                    let html = `<div class="reward-title">${prefix} ${suffix}</div>`;
                     opt.boons.forEach(b => html += `<div class="boon-text">+ ${fullRewardName(b)}: ${b.desc(1)}</div>`);
                     opt.banes.forEach(b => html += `<div class="bane-text">- ${fullRewardName(b)}: ${b.desc(1)}</div>`);
 
@@ -2785,7 +2800,7 @@
                 els.overlayDesc.textContent = desc;
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'block';
-                
+
                 els.actionBtn.textContent = isRestart ? "REBOOT SYSTEM" : "PLAY AGAIN";
                 els.actionBtn.onclick = () => window.location.reload();
 
@@ -2803,7 +2818,7 @@
 
             els.rewardsSortToggle.addEventListener('click', () => {
                 G.rewardSortMode = G.rewardSortMode === 'acquisition' ? 'category' : 'acquisition';
-                els.rewardsSortToggle.textContent = `SORT: ${G.rewardSortMode === 'acquisition' ? 'ACQUISITION' : 'BOON / BANE'}`;
+
                 renderActiveRewards();
             });
 
