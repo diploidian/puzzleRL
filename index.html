@@ -507,8 +507,27 @@
         .reward-button.rarity-uncommon { border-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.35); }
         .reward-button.rarity-rare     { border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); }
         .reward-button.rarity-epic     { border-color: #a855f7; box-shadow: 0 0 16px rgba(168, 85, 247, 0.55); }
-        .reward-button.energy-refill   { border-color: #facc15; box-shadow: 0 0 8px rgba(250, 204, 21, 0.4); }
-        .reward-button.energy-refill .reward-title { color: #facc15; }
+        .reward-button.energy-refill {
+            border-color: #facc15;
+            box-shadow: 0 0 6px rgba(250, 204, 21, 0.3);
+            padding: 8px 12px;
+            margin: 0 auto 16px;
+            max-width: 320px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .reward-button.energy-refill .reward-title {
+            color: #facc15;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
+        .reward-button.energy-refill .boon-text {
+            font-size: 0.8rem;
+        }
 
         .remove-stacks-grid {
             display: grid;
@@ -926,10 +945,10 @@
             function getTierConfig(floor) {
                 const tier = Math.min(3, Math.floor(floor / 10));
                 const baseTiers = [
-                    { rows: 5,  cols: 5,  broken: 0.08, heavy: 0.10, cracked: 0.12, relic: 0.005 },
-                    { rows: 7,  cols: 7,  broken: 0.12, heavy: 0.14, cracked: 0.16, relic: 0.008 },
-                    { rows: 9,  cols: 9,  broken: 0.16, heavy: 0.16, cracked: 0.18, relic: 0.011 },
-                    { rows: 11, cols: 11, broken: 0.20, heavy: 0.18, cracked: 0.20, relic: 0.014 }
+                    { rows: 10, cols: 10, broken: 0.08, heavy: 0.10, cracked: 0.12, relic: 0.005 },
+                    { rows: 12, cols: 12, broken: 0.12, heavy: 0.14, cracked: 0.16, relic: 0.008 },
+                    { rows: 14, cols: 14, broken: 0.16, heavy: 0.16, cracked: 0.18, relic: 0.011 },
+                    { rows: 16, cols: 16, broken: 0.20, heavy: 0.18, cracked: 0.20, relic: 0.014 }
                 ];
                 const cfg = baseTiers[tier];
                 const within = floor % 10;
@@ -1013,11 +1032,21 @@
                     }
                 }
 
+                const powerPositions = [];
                 for (let i = 1; i < path.length - 1; i++) {
                     const [r, c] = path[i];
                     const roll = rng();
-                    if (roll < 0.06) grid[r][c] = TILE_TYPES.POWER;
-                    else if (roll < 0.22) grid[r][c] = TILE_TYPES.CRACKED;
+                    if (roll < 0.06) {
+                        const tooClose = powerPositions.some(([pr, pc]) => Math.abs(pr - r) + Math.abs(pc - c) < 3);
+                        if (!tooClose) {
+                            grid[r][c] = TILE_TYPES.POWER;
+                            powerPositions.push([r, c]);
+                        } else if (roll < 0.22) {
+                            grid[r][c] = TILE_TYPES.CRACKED;
+                        }
+                    } else if (roll < 0.22) {
+                        grid[r][c] = TILE_TYPES.CRACKED;
+                    }
                 }
 
                 const [sr, sc] = path[0];
@@ -1386,10 +1415,10 @@
                 renderEfficiencyBar();
                 els.grid.innerHTML = '';
                 els.level.textContent = G.level + 1;
-                els.energy.textContent = fmtEnergy(G.energy);
+                els.energy.textContent = Math.floor(G.energy);
 
                 let currentCap = getEffectiveCap();
-                els.maxEnergy.textContent = fmtEnergy(currentCap);
+                els.maxEnergy.textContent = Math.floor(currentCap);
 
                 if (G.energy <= Math.max(3, currentCap * 0.2)) { els.energy.classList.add('critical'); }
                 else { els.energy.classList.remove('critical'); }
@@ -2746,6 +2775,15 @@
                 els.choices.innerHTML = '';
                 els.actionBtn.style.display = 'none';
 
+                const energyBtn = document.createElement('div');
+                energyBtn.className = 'reward-button energy-refill';
+                energyBtn.innerHTML = `
+                    <div class="reward-title">⚡ Power Cell</div>
+                    <div class="boon-text">+5 Energy (capped at max)</div>
+                `;
+                energyBtn.addEventListener('click', applyEnergyRefill);
+                els.choices.appendChild(energyBtn);
+
                 const shuffledBoons = getShuffled(BOONS);
                 const shuffledBanes = getShuffled(BANES);
                 const usedBoons = new Set();
@@ -2753,7 +2791,7 @@
                 const options = [];
                 const rarityOrder = ['epic', 'rare', 'uncommon', 'common'];
                 let safety = 30;
-                while (options.length < 2 && safety-- > 0) {
+                while (options.length < 3 && safety-- > 0) {
                     let rarity = rollRarity(G.level);
                     let opt = buildRewardOption(rarity, shuffledBoons, shuffledBanes, usedBoons, usedBanes);
                     if (!opt) {
@@ -2781,15 +2819,6 @@
                     btn.addEventListener('click', () => applyRewardPackage(opt));
                     els.choices.appendChild(btn);
                 });
-
-                const energyBtn = document.createElement('div');
-                energyBtn.className = 'reward-button energy-refill';
-                energyBtn.innerHTML = `
-                    <div class="reward-title">⚡ Power Cell</div>
-                    <div class="boon-text">+ Restore 5 Energy (capped at maximum).</div>
-                `;
-                energyBtn.addEventListener('click', applyEnergyRefill);
-                els.choices.appendChild(energyBtn);
 
                 els.overlay.style.display = 'flex';
             }
